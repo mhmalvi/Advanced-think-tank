@@ -24,6 +24,8 @@ type SettingsState = {
   removeLens: (id: string) => void;
 
   // UI preferences
+  textSize: "sm" | "md" | "lg";
+  setTextSize: (size: "sm" | "md" | "lg") => void;
   showCitationBrackets: boolean;
   toggleCitationBrackets: () => void;
 
@@ -83,6 +85,8 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({ lenses: state.lenses.filter((l) => l.id !== id) }));
       },
 
+      textSize: "md" as "sm" | "md" | "lg",
+      setTextSize: (size: "sm" | "md" | "lg") => set({ textSize: size }),
       showCitationBrackets: true,
       toggleCitationBrackets: () => {
         set((state) => ({ showCitationBrackets: !state.showCitationBrackets }));
@@ -98,6 +102,7 @@ export const useSettingsStore = create<SettingsState>()(
         topics: state.topics,
         geographies: state.geographies,
         lenses: state.lenses,
+        textSize: state.textSize,
         showCitationBrackets: state.showCitationBrackets,
       }),
     },

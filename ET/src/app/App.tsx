@@ -1,10 +1,15 @@
-import { useEffect, Suspense, lazy, Component, type ReactNode } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useCallback, Suspense, lazy, Component, type ReactNode } from "react";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { useAuthStore } from "@/stores/auth";
 import { useLocaleStore } from "@/stores/locale";
+import { useAppStore } from "@/stores/app";
+import { useSettingsStore } from "@/stores/settings";
 import { ProtectedRoute } from "@/app/components/ProtectedRoute";
+import { LeftNav } from "@/app/components/LeftNav";
+import { RightSidebar } from "@/app/components/RightSidebar";
+import { SourceStrip } from "@/app/components/SourceStrip";
 import { Toaster } from "@/app/components/ui/sonner";
 
 const queryClient = new QueryClient({
@@ -20,6 +25,51 @@ const queryClient = new QueryClient({
 const LandingPage = lazy(() => import("@/pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 const AuthPage = lazy(() => import("@/pages/AuthPage").then((m) => ({ default: m.AuthPage })));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const CommandCenter = lazy(() => import("@/pages/CommandCenter").then((m) => ({ default: m.CommandCenter })));
+const SettingsLayout = lazy(() => import("@/pages/SettingsLayout").then((m) => ({ default: m.SettingsLayout })));
+const UserProfileSettings = lazy(() => import("@/pages/UserProfileSettings").then((m) => ({ default: m.UserProfileSettings })));
+const CompanySettings = lazy(() => import("@/pages/CompanySettings").then((m) => ({ default: m.CompanySettings })));
+
+function DashboardLayout() {
+  const leftNavOpen = useAppStore((s) => s.leftNavOpen);
+  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
+  const fetchSources = useAppStore((s) => s.fetchSources);
+  const fetchRecentArticles = useAppStore((s) => s.fetchRecentArticles);
+  const fetchRecentQueries = useAppStore((s) => s.fetchRecentQueries);
+  const fetchQueryCountToday = useAppStore((s) => s.fetchQueryCountToday);
+  const fetchSystemHealth = useAppStore((s) => s.fetchSystemHealth);
+
+  const loadData = useCallback(() => {
+    fetchSources();
+    fetchRecentArticles();
+    fetchRecentQueries();
+    fetchQueryCountToday();
+    fetchSystemHealth();
+  }, [fetchSources, fetchRecentArticles, fetchRecentQueries, fetchQueryCountToday, fetchSystemHealth]);
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 5 * 60 * 1000); // Refresh every 5 minutes
+    return () => clearInterval(interval);
+  }, [loadData]);
+
+  return (
+    <ProtectedRoute>
+      <div className="flex h-[100dvh] w-[100dvw] bg-stone-100 dark:bg-[#0f1011] overflow-hidden text-stone-800 dark:text-stone-200">
+        <LeftNav collapsed={!leftNavOpen} />
+        <div className="flex-1 overflow-hidden m-2 sm:m-3 md:m-4 border border-stone-300 dark:border-stone-800/50 rounded-xl bg-white dark:bg-[#0a0a0b] shadow-2xl flex flex-col relative min-w-0">
+          <SourceStrip />
+          <div className="flex flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden flex flex-col min-w-0">
+              <Outlet />
+            </div>
+            {rightSidebarOpen && <RightSidebar />}
+          </div>
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+}
 
 function ErrorFallback({ error, onReset }: { error: Error; onReset: () => void }) {
   const t = useLocaleStore((s) => s.t);
@@ -73,10 +123,15 @@ function LoadingFallback() {
 
 export default function App() {
   const initialize = useAuthStore((s) => s.initialize);
+  const textSize = useSettingsStore((s) => s.textSize);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    document.documentElement.dataset.textSize = textSize;
+  }, [textSize]);
 
   return (
     <ErrorBoundary>
@@ -87,14 +142,15 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<AuthPage />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <DashboardPage />
-                    </ProtectedRoute>
-                  }
-                />
+                <Route element={<DashboardLayout />}>
+                  <Route path="/dashboard" element={<CommandCenter />} />
+                  <Route path="/dashboard/legacy" element={<DashboardPage />} />
+                  <Route path="/settings" element={<SettingsLayout />}>
+                    <Route path="profile" element={<UserProfileSettings />} />
+                    <Route path="company" element={<CompanySettings />} />
+                    <Route index element={<Navigate to="profile" replace />} />
+                  </Route>
+                </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>

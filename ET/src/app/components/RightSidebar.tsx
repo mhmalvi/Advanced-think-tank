@@ -1,157 +1,92 @@
-import { TrendingUp, Newspaper, Activity, CheckCircle, AlertTriangle } from "lucide-react";
-import { useMemo } from "react";
-import { useLocaleStore } from "@/stores/locale";
+import { HelpCircle, TrendingUp } from "lucide-react";
 import { useAppStore } from "@/stores/app";
-import { relativeTime } from "@/lib/utils";
-import { HEALTH_THRESHOLD_MS, MAX_RECENT_ITEMS } from "@/lib/constants";
-
-function timeSince(dateStr: string, t: ReturnType<typeof useLocaleStore.getState>["t"]): string {
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "—";
-  const diff = Date.now() - date.getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return t.time.justNow;
-  if (mins < 60) return t.time.minutesAgo.replace("{n}", String(mins));
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return t.time.hoursAgo.replace("{n}", String(hours));
-  return t.time.daysAgo.replace("{n}", String(Math.floor(hours / 24)));
-}
 
 export function RightSidebar() {
-  const t = useLocaleStore((s) => s.t);
+  const recentQueries = useAppStore((s) => s.recentQueries);
   const sources = useAppStore((s) => s.sources);
-  const recentArticles = useAppStore((s) => s.recentArticles);
   const queryCountToday = useAppStore((s) => s.queryCountToday);
-  const submitQuery = useAppStore((s) => s.submitQuery);
-  const closeAllPanels = useAppStore((s) => s.closeAllPanels);
-  const lastIngestionTime = useAppStore((s) => s.lastIngestionTime);
   const totalArticleCount = useAppStore((s) => s.totalArticleCount);
+  const submitQuery = useAppStore((s) => s.submitQuery);
 
-  // Health: if last ingestion was more than 2 hours ago, status is degraded
-  const isHealthy = useMemo(
-    () => (lastIngestionTime ? Date.now() - new Date(lastIngestionTime).getTime() < HEALTH_THRESHOLD_MS : false),
-    [lastIngestionTime],
-  );
+  // Show recent query texts as "key questions"
+  const recentQueryTexts = recentQueries.slice(0, 5).map((q) => q.query_text);
 
-  const handleQuery = (text: string) => {
-    closeAllPanels();
-    submitQuery(text);
-  };
-
-  // Top sources ranked by article count
-  const topSources = sources
-    .filter((s) => s.article_count > 0)
+  // Top sources by article count as "trending"
+  const topSources = [...sources]
     .sort((a, b) => b.article_count - a.article_count)
-    .slice(0, MAX_RECENT_ITEMS);
-
-  // Latest articles
-  const latestArticles = recentArticles.slice(0, MAX_RECENT_ITEMS);
+    .slice(0, 3);
 
   return (
-    <aside className="w-full h-full border-l border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 flex flex-col overflow-y-auto">
-      <div className="p-6">
-        {/* System Health Monitor */}
-        <div className="mb-8 p-4 rounded border-2 border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-950">
-          <div className="flex items-center gap-2 mb-3">
-            <Activity className="size-4 text-stone-700 dark:text-stone-300" />
-            <h3 className="text-sm font-bold text-black dark:text-white">{t.sidebar.systemHealth}</h3>
+    <aside className="w-64 border-l border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950 flex flex-col h-screen overflow-y-auto">
+      <div className="p-3">
+        <div className="mb-4 text-stone-700 dark:text-stone-300">
+          <div className="flex items-center gap-1.5 mb-2">
+            <HelpCircle className="size-3.5 text-stone-500" />
+            <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wide">Recent Queries</h3>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-600 dark:text-stone-400">{t.sidebar.pipelineStatus}</span>
-              <div className="flex items-center gap-1.5">
-                {isHealthy ? (
-                  <>
-                    <CheckCircle className="size-3 text-green-600" />
-                    <span className="text-xs font-bold text-green-600">{t.sidebar.healthy}</span>
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="size-3 text-amber-500" />
-                    <span className="text-xs font-bold text-amber-500">{t.sidebar.degraded}</span>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-600 dark:text-stone-400">{t.sidebar.lastIngestion}</span>
-              <span className="text-xs font-bold text-black dark:text-white">
-                {lastIngestionTime ? timeSince(lastIngestionTime, t) : t.sidebar.neverRun}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-stone-600 dark:text-stone-400">{t.sidebar.vectorCount}</span>
-              <span className="text-xs font-bold text-black dark:text-white">{totalArticleCount.toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Latest Articles */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Newspaper className="size-4 text-stone-700 dark:text-stone-300" />
-            <h3 className="text-sm font-bold text-black dark:text-white">{t.sidebar.latestArticles}</h3>
-          </div>
-          <div className="space-y-2">
-            {latestArticles.length > 0 ? (
-              latestArticles.map((article) => (
+          <div className="space-y-1.5">
+            {recentQueryTexts.length === 0 ? (
+              <p className="text-[11px] text-stone-400 italic px-2 py-1.5">No queries yet</p>
+            ) : (
+              recentQueryTexts.map((question, index) => (
                 <button
-                  key={article.id}
-                  onClick={() => handleQuery(article.title)}
-                  className="w-full text-left p-3 text-sm border-2 border-stone-200 dark:border-stone-700 hover:border-black dark:hover:border-white bg-white dark:bg-stone-900 rounded transition-colors"
+                  key={index}
+                  onClick={() => submitQuery(question)}
+                  className="w-full text-left px-2 py-1.5 text-[11px] font-medium text-stone-700 dark:text-stone-300
+                    bg-white dark:bg-stone-900
+                    border border-stone-200 dark:border-stone-800
+                    hover:bg-stone-100 dark:hover:bg-stone-800 hover:border-stone-300 dark:hover:border-stone-600
+                    rounded transition-all duration-200 flex items-start gap-1.5 group"
                 >
-                  <span className="line-clamp-2 text-stone-800 dark:text-stone-200">{article.title}</span>
-                  <div className="flex items-center gap-2 text-xs text-stone-500 mt-1">
-                    <span>{article.source_name}</span>
-                    {article.published_at && (
-                      <>
-                        <span>&bull;</span>
-                        <span>{relativeTime(article.published_at)}</span>
-                      </>
-                    )}
+                  <div className="mt-0.5 shrink-0 w-3 h-3 rounded-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center group-hover:bg-stone-300 dark:group-hover:bg-stone-500 transition-colors">
+                     <div className="w-1 h-1 rounded-full bg-stone-400 dark:bg-stone-500 group-hover:bg-stone-600 dark:group-hover:bg-stone-900 transition-colors" />
                   </div>
+                  <span className="leading-snug flex-1 line-clamp-2">{question}</span>
                 </button>
               ))
-            ) : (
-              <p className="text-xs text-stone-500">{t.common.loading}</p>
             )}
           </div>
         </div>
 
-        {/* Top Sources */}
         <div>
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="size-4 text-stone-700 dark:text-stone-300" />
-            <h3 className="text-sm font-bold text-black dark:text-white">{t.sidebar.topSources}</h3>
+          <div className="flex items-center gap-1.5 mb-2 text-stone-700 dark:text-stone-300">
+            <TrendingUp className="size-3.5 text-stone-500" />
+            <h3 className="text-xs font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wide">Top Sources</h3>
           </div>
-          <div className="space-y-2">
-            {topSources.map((source) => (
-              <button
-                key={source.id}
-                onClick={() => handleQuery(t.sidebar.latestNewsFrom.replace("{name}", source.name))}
-                className="w-full text-left p-3 rounded border-2 border-stone-200 dark:border-stone-700 hover:border-black dark:hover:border-white transition-colors flex items-center justify-between bg-white dark:bg-stone-900"
-              >
-                <span className="text-sm text-stone-800 dark:text-stone-200">{source.name}</span>
-                <span className="text-xs font-bold text-[var(--brand)]">{source.article_count}</span>
-              </button>
-            ))}
+          <div className="space-y-1.5">
+            {topSources.length === 0 ? (
+              <p className="text-[11px] text-stone-400 italic px-2">Loading...</p>
+            ) : (
+              topSources.map((source) => (
+                <button
+                  key={source.id}
+                  className="w-full text-left p-1.5 rounded border border-stone-200 dark:border-stone-800 hover:border-stone-300 dark:hover:border-stone-500 transition-colors flex items-center justify-between group bg-white dark:bg-stone-900"
+                >
+                  <span className="text-[11px] font-medium text-stone-700 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-stone-100 truncate">
+                    {source.name}
+                  </span>
+                  <span className="text-[10px] font-bold text-[#E94E3D] shrink-0 ml-2">
+                    {source.article_count}
+                  </span>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="mt-8 p-4 bg-stone-50 dark:bg-stone-950 rounded border-2 border-stone-200 dark:border-stone-700">
-          <div className="space-y-3">
+        <div className="mt-4 p-2.5 bg-white dark:bg-stone-900 rounded border border-stone-200 dark:border-stone-800">
+          <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-stone-700 dark:text-stone-300">{t.sidebar.queriesToday}</span>
-              <span className="text-sm font-bold text-black dark:text-white">{queryCountToday}</span>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">Queries Today</span>
+              <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{queryCountToday}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-stone-700 dark:text-stone-300">{t.sidebar.monitoredSources}</span>
-              <span className="text-sm font-bold text-black dark:text-white">{sources.length}</span>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">Monitored Sources</span>
+              <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{sources.length}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-xs text-stone-700 dark:text-stone-300">{t.sidebar.newArticles}</span>
-              <span className="text-sm font-bold text-black dark:text-white">{totalArticleCount.toLocaleString()}</span>
+              <span className="text-[10px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">Total Articles</span>
+              <span className="text-xs font-bold text-stone-900 dark:text-stone-100">{totalArticleCount.toLocaleString()}</span>
             </div>
           </div>
         </div>

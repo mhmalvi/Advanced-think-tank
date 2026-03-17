@@ -10,6 +10,8 @@ type RecentArticle = {
   source_name: string;
   published_at: string;
   url: string;
+  excerpt: string | null;
+  image_url: string | null;
 };
 
 function mapArticleRow(a: Record<string, unknown>): RecentArticle {
@@ -19,6 +21,8 @@ function mapArticleRow(a: Record<string, unknown>): RecentArticle {
     source_name: (a.source as { name: string } | null)?.name ?? "",
     published_at: a.published_at as string,
     url: a.url as string,
+    excerpt: (a.excerpt as string | null) ?? null,
+    image_url: (a.image_url as string | null) ?? null,
   };
 }
 
@@ -79,7 +83,7 @@ export const createSourceSlice: StateCreator<AppState, [], [], SourceSlice> = (s
     try {
       const { data } = await supabase
         .from("articles")
-        .select("id, title, published_at, url, source:sources(name)")
+        .select("id, title, published_at, url, excerpt, image_url, source:sources(name)")
         .order("published_at", { ascending: false })
         .limit(FETCH_RECENT_ARTICLES_LIMIT);
       set({ recentArticles: (data ?? []).map((a: Record<string, unknown>) => mapArticleRow(a)) });
@@ -98,7 +102,7 @@ export const createSourceSlice: StateCreator<AppState, [], [], SourceSlice> = (s
     try {
       const { data } = await supabase
         .from("articles")
-        .select("id, title, published_at, url, source:sources(name)")
+        .select("id, title, published_at, url, excerpt, image_url, source:sources(name)")
         .eq("source_id", source.id)
         .order("published_at", { ascending: false })
         .limit(FETCH_SOURCE_ARTICLES_LIMIT);

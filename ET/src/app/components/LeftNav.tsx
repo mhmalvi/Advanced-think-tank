@@ -1,215 +1,138 @@
-import { BookmarkCheck, Database, ChevronRight, LogOut, Newspaper, Bookmark, Settings } from "lucide-react";
+import { BookmarkCheck, Database, ChevronRight, LayoutDashboard, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
-import { ThemeToggle } from "@/app/components/ThemeToggle";
-import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
-import { useAuthStore } from "@/stores/auth";
-import { useLocaleStore } from "@/stores/locale";
+import { Link, useLocation } from "react-router-dom";
 import { useAppStore } from "@/stores/app";
-import { useSettingsStore } from "@/stores/settings";
-import { useSavedQueries } from "@/hooks/useQueries";
-import { MAX_TITLE_LENGTH, MAX_RECENT_ITEMS, MAX_RECENT_QUERIES_DISPLAY } from "@/lib/constants";
+import { useSavedQueries, useSources } from "@/hooks/useQueries";
 
-export function LeftNav() {
-  const { profile, signOut } = useAuthStore();
-  const t = useLocaleStore((s) => s.t);
-  const recentQueries = useAppStore((s) => s.recentQueries);
-  const recentArticles = useAppStore((s) => s.recentArticles);
-  const sources = useAppStore((s) => s.sources);
-  const submitQuery = useAppStore((s) => s.submitQuery);
-  const browseSource = useAppStore((s) => s.browseSource);
-  const closeAllPanels = useAppStore((s) => s.closeAllPanels);
-  const goHome = useAppStore((s) => s.goHome);
-  const setShowSavedQueries = useAppStore((s) => s.setShowSavedQueries);
-  const openSettings = useSettingsStore((s) => s.openSettings);
+interface LeftNavProps {
+  collapsed?: boolean;
+}
 
-  // Fetch saved queries directly from Supabase (not just filtering recent window)
-  const { data: savedQueriesData } = useSavedQueries();
-  const savedQueries = (savedQueriesData ?? []).slice(0, MAX_RECENT_QUERIES_DISPLAY);
-  const recentQueryItems = recentQueries.slice(0, MAX_RECENT_QUERIES_DISPLAY);
-  const recentArticleItems = recentArticles.slice(0, MAX_RECENT_ITEMS);
-  const activeSources = sources.filter((s) => s.article_count > 0);
+export function LeftNav({ collapsed = false }: LeftNavProps) {
+  const location = useLocation();
+  const toggleLeftNav = useAppStore((s) => s.toggleLeftNav);
+  const { data: savedQueries } = useSavedQueries();
+  const { data: sources } = useSources();
 
-  const handleQueryClick = (text: string) => {
-    closeAllPanels();
-    submitQuery(text);
-  };
+  const mainNav = [
+    { label: "Command Center", path: "/dashboard", icon: LayoutDashboard },
+  ];
 
-  const handleSourceClick = (source: (typeof sources)[0]) => {
-    closeAllPanels();
-    browseSource(source);
-  };
+  const savedQueryItems = (savedQueries ?? []).slice(0, 5).map((q) => q.query_text);
+  const topSources = (sources ?? []).slice(0, 5).map((s) => s.name);
+
+  const navSections = [
+    {
+      title: "Saved Queries",
+      icon: BookmarkCheck,
+      items: savedQueryItems.length > 0 ? savedQueryItems : ["No saved queries"],
+    },
+    {
+      title: "Sources",
+      icon: Database,
+      items: topSources.length > 0 ? topSources : ["No sources"],
+    },
+  ];
+
+  if (collapsed) {
+    return (
+      <aside className="w-14 border-r border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 flex flex-col h-screen shrink-0 items-center py-3 gap-3 transition-all duration-200">
+        <button
+          onClick={toggleLeftNav}
+          className="p-2 rounded hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
+          title="Expand sidebar"
+        >
+          <PanelLeftOpen className="size-4" />
+        </button>
+
+        <div className="flex-1 flex flex-col items-center gap-1 mt-2">
+          {mainNav.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                title={item.label}
+                className={`p-2 rounded transition-colors ${
+                  isActive
+                    ? "bg-stone-200 dark:bg-stone-800 text-black dark:text-white"
+                    : "text-stone-500 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800"
+                }`}
+              >
+                <item.icon className="size-4" />
+              </Link>
+            );
+          })}
+        </div>
+      </aside>
+    );
+  }
 
   return (
-    <aside className="w-full h-full border-r border-stone-200 dark:border-stone-800 bg-background flex flex-col">
-      <div className="p-6 border-b border-stone-200 dark:border-stone-800">
-        <button
-          onClick={() => {
-            closeAllPanels();
-            goHome();
-          }}
-          className="w-full text-left group"
-          title={t.common.home}
-        >
-          <div className="mb-4">
+    <aside className="w-56 border-r border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 flex flex-col h-screen shrink-0 transition-all duration-200">
+      <div className="p-3 border-b border-stone-200 dark:border-stone-800">
+        <div className="flex items-start justify-between">
+          <Link to="/" className="mb-2 block">
             <ImageWithFallback
-              src="/logo.png"
-              alt={t.common.logoAlt}
-              className="h-16 w-auto object-contain object-left dark:invert group-hover:opacity-80 transition-opacity"
+              src="https://images.squarespace-cdn.com/content/v1/6556194e9cc0e30b3030a441/78761e90-5e4a-4a8b-9224-6fdb54cde2c9/Et_Prim%E2%94%9C%C2%AAr_Vertikalt_Logo_Sort_R%E2%94%9C%E2%95%95d_RGB.png?format=1500w"
+              alt="Et Primaer Logo"
+              className="h-14 w-auto object-contain object-left dark:invert"
             />
-          </div>
-          <h1 className="font-bold text-foreground tracking-tight group-hover:text-[var(--brand)] transition-colors">
-            Jaegeren
-          </h1>
-          <p className="text-xs text-muted-foreground mt-1">{t.nav.subtitle}</p>
-        </button>
+          </Link>
+          <button
+            onClick={toggleLeftNav}
+            className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors mt-1"
+            title="Collapse sidebar"
+          >
+            <PanelLeftClose className="size-4" />
+          </button>
+        </div>
+        <h1 className="font-bold text-black dark:text-white tracking-tight text-sm">Jaegeren</h1>
+        <p className="text-[10px] text-stone-600 dark:text-stone-400 mt-0.5">Geo-economic intelligence</p>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-4">
-        {/* Daily Scan — recent articles */}
-        {recentArticleItems.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 px-2 mb-2 text-foreground">
-              <Newspaper className="size-4" />
-              <h2 className="text-sm font-medium">{t.nav.dailyScan}</h2>
+      <nav className="flex-1 overflow-y-auto p-2">
+        <div className="mb-4">
+          <div className="space-y-1">
+            {mainNav.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 transition-colors ${
+                    isActive
+                      ? "bg-stone-200 dark:bg-stone-800 text-black dark:text-white font-medium"
+                      : "text-stone-700 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800"
+                  }`}
+                >
+                  <item.icon className="size-3.5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {navSections.map((section) => (
+          <div key={section.title} className="mb-4">
+            <div className="flex items-center gap-2 px-1 mb-1 text-stone-900 dark:text-stone-100">
+              <section.icon className="size-3.5" />
+              <h2 className="text-sm font-medium">{section.title}</h2>
             </div>
             <ul className="space-y-1">
-              {recentArticleItems.map((article) => (
-                <li key={article.id}>
-                  <button
-                    onClick={() => handleQueryClick(article.title)}
-                    className="w-full text-left px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded flex items-center justify-between group transition-colors"
-                  >
-                    <span className="truncate">
-                      {article.title.length > MAX_TITLE_LENGTH
-                        ? article.title.substring(0, MAX_TITLE_LENGTH) + "..."
-                        : article.title}
-                    </span>
-                    <ChevronRight className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                  </button>
+              {section.items.map((item) => (
+                <li key={item}>
+                  <Link to="/dashboard" className="w-full text-left px-2 py-1 text-xs text-stone-700 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800 rounded flex items-center justify-between group transition-colors">
+                    <span>{item}</span>
+                    <ChevronRight className="size-3 text-stone-400 dark:text-stone-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
-        )}
-
-        {/* Saved Queries */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between px-2 mb-2">
-            <div className="flex items-center gap-2 text-foreground">
-              <Bookmark className="size-4" />
-              <h2 className="text-sm font-medium">{t.nav.savedQueries}</h2>
-            </div>
-            <button
-              onClick={() => {
-                closeAllPanels();
-                setShowSavedQueries(true);
-              }}
-              className="text-xs text-[var(--brand)] hover:underline"
-            >
-              {t.nav.viewAllSaved}
-            </button>
-          </div>
-          <ul className="space-y-1">
-            {savedQueries.length > 0 ? (
-              savedQueries.map((q) => (
-                <li key={q.id}>
-                  <button
-                    onClick={() => handleQueryClick(q.query_text)}
-                    className="w-full text-left px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded flex items-center justify-between group transition-colors"
-                  >
-                    <span className="truncate">{q.query_text}</span>
-                    <ChevronRight className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                  </button>
-                </li>
-              ))
-            ) : (
-              <li className="px-2 py-1.5 text-xs text-muted-foreground">{t.nav.noSavedQueries}</li>
-            )}
-          </ul>
-        </div>
-
-        {/* Recent Queries */}
-        {recentQueryItems.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 px-2 mb-2 text-foreground">
-              <BookmarkCheck className="size-4" />
-              <h2 className="text-sm font-medium">{t.nav.queryHistory}</h2>
-            </div>
-            <ul className="space-y-1">
-              {recentQueryItems.map((q) => (
-                <li key={q.id}>
-                  <button
-                    onClick={() => handleQueryClick(q.query_text)}
-                    className="w-full text-left px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded flex items-center justify-between group transition-colors"
-                  >
-                    <span className="truncate">{q.query_text}</span>
-                    <ChevronRight className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Sources — real source list with article counts */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 px-2 mb-2 text-foreground">
-            <Database className="size-4" />
-            <h2 className="text-sm font-medium">{t.nav.sources}</h2>
-          </div>
-          <ul className="space-y-1">
-            {activeSources.length > 0 ? (
-              activeSources.map((source) => (
-                <li key={source.id}>
-                  <button
-                    onClick={() => handleSourceClick(source)}
-                    className="w-full text-left px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded flex items-center justify-between group transition-colors"
-                  >
-                    <span className="truncate">{source.name}</span>
-                    <span className="text-xs text-muted-foreground flex-shrink-0">{source.article_count}</span>
-                  </button>
-                </li>
-              ))
-            ) : (
-              <li className="px-2 py-1.5 text-xs text-muted-foreground">{t.common.loading}</li>
-            )}
-          </ul>
-        </div>
+        ))}
       </nav>
-
-      <div className="p-4 border-t border-stone-200 dark:border-stone-800">
-        <button
-          onClick={() => {
-            closeAllPanels();
-            openSettings();
-          }}
-          className="w-full flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors mb-3"
-        >
-          <Settings className="size-4" />
-          <span>{t.nav.settings}</span>
-        </button>
-        {profile && (
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-muted-foreground truncate">{profile.full_name || profile.email}</span>
-            <button
-              onClick={signOut}
-              className="p-1 text-muted-foreground hover:text-foreground transition-colors"
-              title={t.common.logOut}
-              aria-label={t.common.logOut}
-            >
-              <LogOut className="size-3.5" />
-            </button>
-          </div>
-        )}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground">{t.common.theme}</span>
-          <ThemeToggle />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{t.common.language}</span>
-          <LanguageSwitcher />
-        </div>
-      </div>
     </aside>
   );
 }

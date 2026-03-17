@@ -24,16 +24,15 @@ export type UISlice = {
 };
 
 export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => ({
-  // Mobile layout
-  leftNavOpen: false,
+  leftNavOpen: true,
   rightSidebarOpen: false,
 
   toggleLeftNav: () => {
-    set((state) => ({ leftNavOpen: !state.leftNavOpen, rightSidebarOpen: false }));
+    set((state) => ({ leftNavOpen: !state.leftNavOpen }));
   },
 
   toggleRightSidebar: () => {
-    set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen, leftNavOpen: false }));
+    set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen }));
   },
 
   /** Closes both the left nav and right sidebar panels (used on mobile overlay dismiss). */
@@ -80,7 +79,7 @@ export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => (
       sourceArticlesLoading: false,
       showAllSources: false,
       showSavedQueries: false,
-      leftNavOpen: false,
+      leftNavOpen: true,
       rightSidebarOpen: false,
       lastIngestionTime: null,
       totalArticleCount: 0,
