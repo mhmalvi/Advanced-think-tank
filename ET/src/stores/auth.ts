@@ -33,10 +33,13 @@ type AuthState = {
   profile: Profile | null;
   loading: boolean;
   initialized: boolean;
+  needsOnboarding: boolean;
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
 };
 
 /** Fetch profile, swallowing errors so auth doesn't hang */
@@ -54,12 +57,18 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   return Promise.race([promise, new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))]);
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+// @ts-expect-error — temp debug
+window.__authStore = null;
+export const useAuthStore = create<AuthState>((set, get) => {
+  // @ts-expect-error — temp debug
+  window.__authStore = { set, get };
+  return ({
   user: null,
   session: null,
   profile: null,
   loading: true,
   initialized: false,
+  needsOnboarding: false,
 
   /**
    * Initializes auth state: restores session from Supabase, fetches profile, and registers
@@ -75,6 +84,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: { id: "dev-user", email: "dev@jaegeren.local" } as unknown as User,
         loading: false,
         initialized: true,
+        needsOnboarding: false,
       });
       return;
     }
@@ -100,10 +110,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         if (session?.user) {
           // Don't await — fire and forget to avoid blocking signInWithPassword
           withTimeout(fetchProfile(session.user.id), 2000).then((profile) => {
-            set({ user: session.user, session, profile, loading: false, initialized: true });
+            const needsOnboarding = profile ? !profile.onboarding_completed : false;
+            set({ user: session.user, session, profile, needsOnboarding, loading: false, initialized: true });
           });
         } else {
-          set({ user: null, session: null, profile: null, loading: false, initialized: true });
+          set({ user: null, session: null, profile: null, needsOnboarding: false, loading: false, initialized: true });
         }
       });
       authSubscription = subscription;
@@ -134,7 +145,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Valid session — fetch profile
       if (session?.user) {
         const profile = await withTimeout(fetchProfile(session.user.id), 2000);
-        set({ user: session.user, session, profile, loading: false, initialized: true });
+        const needsOnboarding = profile ? !profile.onboarding_completed : false;
+        set({ user: session.user, session, profile, needsOnboarding, loading: false, initialized: true });
       } else {
         // No session — show auth page
         set({ loading: false, initialized: true });
@@ -154,7 +166,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Directly set user so we don't rely solely on onAuthStateChange
     if (data.session?.user) {
       const profile = await withTimeout(fetchProfile(data.session.user.id), 2000);
-      set({ user: data.session.user, session: data.session, profile, loading: false, initialized: true });
+      const needsOnboarding = profile ? !profile.onboarding_completed : false;
+      set({ user: data.session.user, session: data.session, profile, needsOnboarding, loading: false, initialized: true });
     }
     return { error: null };
   },
@@ -170,8 +183,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Directly set user if auto-confirmed (no email verification)
     if (data.session?.user) {
       const profile = await withTimeout(fetchProfile(data.session.user.id), 2000);
-      set({ user: data.session.user, session: data.session, profile, loading: false, initialized: true });
+      const needsOnboarding = profile ? !profile.onboarding_completed : true;
+      set({ user: data.session.user, session: data.session, profile, needsOnboarding, loading: false, initialized: true });
     }
+    return { error: null };
+  },
+
+  resetPassword: async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset`,
+    });
+    if (error) return { error: sanitizeAuthError(error.message) };
+    return { error: null };
+  },
+
+  updatePassword: async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: sanitizeAuthError(error.message) };
     return { error: null };
   },
 
@@ -189,4 +217,4 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const { useAppStore } = await import("@/stores/app");
     useAppStore.getState().resetStore();
   },
-}));
+})});

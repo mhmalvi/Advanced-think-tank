@@ -42,13 +42,9 @@ export type SourceSlice = {
   sourceArticlesLoading: boolean;
   browseSource: (source: Source) => Promise<void>;
   clearSelectedSource: () => void;
-  showAllSources: boolean;
-  toggleShowAllSources: () => void;
-
   // Monitoring
   lastIngestionTime: string | null;
   totalArticleCount: number;
-  fetchSystemHealth: () => Promise<void>;
 };
 
 export const createSourceSlice: StateCreator<AppState, [], [], SourceSlice> = (set) => ({
@@ -119,31 +115,7 @@ export const createSourceSlice: StateCreator<AppState, [], [], SourceSlice> = (s
     set({ selectedSource: null, sourceArticles: [], queryError: null });
   },
 
-  showAllSources: false,
-
-  toggleShowAllSources: () => {
-    set((state) => ({ showAllSources: !state.showAllSources }));
-  },
-
   // Monitoring
   lastIngestionTime: null,
   totalArticleCount: 0,
-
-  /** Fetches the latest ingestion timestamp and total article count for the system health dashboard. */
-  fetchSystemHealth: async () => {
-    try {
-      const { data } = await supabase
-        .from("articles")
-        .select("ingested_at")
-        .order("ingested_at", { ascending: false })
-        .limit(1);
-      const latest = data?.[0]?.ingested_at ?? null;
-
-      const { count } = await supabase.from("articles").select("*", { count: "exact", head: true });
-
-      set({ lastIngestionTime: latest, totalArticleCount: count ?? 0 });
-    } catch {
-      // Non-critical
-    }
-  },
 });

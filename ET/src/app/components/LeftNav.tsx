@@ -1,75 +1,83 @@
-import { BookmarkCheck, Database, ChevronRight, LayoutDashboard, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  LayoutDashboard,
+  Database,
+  Bookmark,
+  Settings,
+  PanelLeftClose,
+  PanelLeftOpen,
+  TrendingUp,
+  Clock,
+  Newspaper,
+} from "lucide-react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import { Link, useLocation } from "react-router-dom";
 import { useAppStore } from "@/stores/app";
-import { useSavedQueries, useSources } from "@/hooks/useQueries";
+import { useStoriesStore } from "@/stores/stories";
+import { relativeTime } from "@/lib/utils";
 
 interface LeftNavProps {
   collapsed?: boolean;
 }
 
+const mainNav = [
+  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+  { label: "Sources", path: "/sources", icon: Database },
+  { label: "Bookmarks", path: "/settings/bookmarks", icon: Bookmark },
+  { label: "Settings", path: "/settings/profile", icon: Settings },
+];
+
 export function LeftNav({ collapsed = false }: LeftNavProps) {
   const location = useLocation();
   const toggleLeftNav = useAppStore((s) => s.toggleLeftNav);
-  const { data: savedQueries } = useSavedQueries();
-  const { data: sources } = useSources();
+  const stories = useStoriesStore((s) => s.stories);
 
-  const mainNav = [
-    { label: "Command Center", path: "/dashboard", icon: LayoutDashboard },
-  ];
+  // Top 5 stories by source_count for "Trending"
+  const trending = [...stories]
+    .sort((a, b) => b.source_count - a.source_count)
+    .slice(0, 5);
 
-  const savedQueryItems = (savedQueries ?? []).slice(0, 5).map((q) => q.query_text);
-  const topSources = (sources ?? []).slice(0, 5).map((s) => s.name);
+  const isNavActive = (path: string) => {
+    if (path === "/dashboard") return location.pathname === "/dashboard";
+    return location.pathname.startsWith(path);
+  };
 
-  const navSections = [
-    {
-      title: "Saved Queries",
-      icon: BookmarkCheck,
-      items: savedQueryItems.length > 0 ? savedQueryItems : ["No saved queries"],
-    },
-    {
-      title: "Sources",
-      icon: Database,
-      items: topSources.length > 0 ? topSources : ["No sources"],
-    },
-  ];
-
+  // ─── Collapsed ───
   if (collapsed) {
     return (
-      <aside className="w-14 border-r border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 flex flex-col h-screen shrink-0 items-center py-3 gap-3 transition-all duration-200">
+      <aside className="w-14 border-r border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 flex flex-col h-screen shrink-0 items-center py-3 gap-1 transition-all duration-200">
         <button
           onClick={toggleLeftNav}
-          className="p-2 rounded hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors"
+          className="p-2 rounded hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors mb-2"
           title="Expand sidebar"
         >
           <PanelLeftOpen className="size-4" />
         </button>
 
-        <div className="flex-1 flex flex-col items-center gap-1 mt-2">
-          {mainNav.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                title={item.label}
-                className={`p-2 rounded transition-colors ${
-                  isActive
-                    ? "bg-stone-200 dark:bg-stone-800 text-black dark:text-white"
-                    : "text-stone-500 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800"
-                }`}
-              >
-                <item.icon className="size-4" />
-              </Link>
-            );
-          })}
-        </div>
+        {mainNav.map((item) => {
+          const active = isNavActive(item.path);
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              title={item.label}
+              className={`p-2 rounded transition-colors ${
+                active
+                  ? "bg-stone-200 dark:bg-stone-800 text-black dark:text-white"
+                  : "text-stone-500 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800"
+              }`}
+            >
+              <item.icon className="size-4" />
+            </Link>
+          );
+        })}
       </aside>
     );
   }
 
+  // ─── Expanded ───
   return (
     <aside className="w-56 border-r border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 flex flex-col h-screen shrink-0 transition-all duration-200">
+      {/* Header */}
       <div className="p-3 border-b border-stone-200 dark:border-stone-800">
         <div className="flex items-start justify-between">
           <Link to="/" className="mb-2 block">
@@ -92,46 +100,65 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2">
-        <div className="mb-4">
-          <div className="space-y-1">
-            {mainNav.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 transition-colors ${
-                    isActive
-                      ? "bg-stone-200 dark:bg-stone-800 text-black dark:text-white font-medium"
-                      : "text-stone-700 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800"
-                  }`}
-                >
-                  <item.icon className="size-3.5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
+        {/* Main navigation */}
+        <div className="mb-4 space-y-1">
+          {mainNav.map((item) => {
+            const active = isNavActive(item.path);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 transition-colors ${
+                  active
+                    ? "bg-stone-200 dark:bg-stone-800 text-black dark:text-white font-medium"
+                    : "text-stone-700 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800"
+                }`}
+              >
+                <item.icon className="size-3.5" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </div>
 
-        {navSections.map((section) => (
-          <div key={section.title} className="mb-4">
-            <div className="flex items-center gap-2 px-1 mb-1 text-stone-900 dark:text-stone-100">
-              <section.icon className="size-3.5" />
-              <h2 className="text-sm font-medium">{section.title}</h2>
+        {/* Trending stories */}
+        {trending.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 px-1 mb-1.5 text-stone-900 dark:text-stone-100">
+              <TrendingUp className="size-3.5" />
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider">Trending</h2>
             </div>
-            <ul className="space-y-1">
-              {section.items.map((item) => (
-                <li key={item}>
-                  <Link to="/dashboard" className="w-full text-left px-2 py-1 text-xs text-stone-700 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800 rounded flex items-center justify-between group transition-colors">
-                    <span>{item}</span>
-                    <ChevronRight className="size-3 text-stone-400 dark:text-stone-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ul className="space-y-0.5">
+              {trending.map((story) => (
+                <li key={story.id}>
+                  <Link
+                    to={`/canvas/${story.id}`}
+                    className="w-full text-left px-2 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800 rounded flex items-start gap-2 group transition-colors"
+                  >
+                    <Newspaper className="size-3 mt-0.5 shrink-0 text-stone-400 dark:text-stone-600 group-hover:text-stone-600 dark:group-hover:text-stone-300" />
+                    <div className="min-w-0 flex-1">
+                      <span className="line-clamp-2 leading-tight">{story.title}</span>
+                      <span className="text-[10px] text-stone-400 dark:text-stone-600 mt-0.5 block">
+                        {story.source_count} sources
+                      </span>
+                    </div>
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
-        ))}
+        )}
+
+        {/* Recent sessions — placeholder until Epic 6 */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 px-1 mb-1.5 text-stone-900 dark:text-stone-100">
+            <Clock className="size-3.5" />
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider">Recent</h2>
+          </div>
+          <p className="px-2 py-1 text-[10px] text-stone-400 dark:text-stone-600 italic">
+            No recent sessions
+          </p>
+        </div>
       </nav>
     </aside>
   );

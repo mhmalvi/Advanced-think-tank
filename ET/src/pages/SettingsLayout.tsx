@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { ArrowLeft, User, Building2 } from "lucide-react";
+import { ArrowLeft, User, Building2, Bookmark, Clock } from "lucide-react";
 import { useLocaleStore } from "@/stores/locale";
 
 export function SettingsLayout() {
@@ -9,6 +9,8 @@ export function SettingsLayout() {
   const tabs = [
     { key: "profile", path: "/settings/profile", icon: User, label: t.settings.profile },
     { key: "company", path: "/settings/company", icon: Building2, label: t.settings.organization },
+    { key: "bookmarks", path: "/settings/bookmarks", icon: Bookmark, label: "Bookmarks" },
+    { key: "history", path: "/settings/history", icon: Clock, label: "History" },
   ];
 
   return (

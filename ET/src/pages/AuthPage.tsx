@@ -6,22 +6,35 @@ import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
 
 export function AuthPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { user, signIn, signUp } = useAuthStore();
+  const { user, signIn, signUp, resetPassword } = useAuthStore();
   const t = useLocaleStore((s) => s.t);
 
-  // Redirect if already logged in
-  if (user) return <Navigate to="/" replace />;
+  // Redirect if already logged in — use replace to prevent back-button login loop
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setLoading(true);
+
+    if (mode === "forgot") {
+      const result = await resetPassword(email);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setSuccess(t.auth.resetEmailSent);
+      }
+      setLoading(false);
+      return;
+    }
 
     const result = mode === "login" ? await signIn(email, password) : await signUp(email, password, fullName);
 
@@ -66,10 +79,14 @@ export function AuthPage() {
           </div>
 
           <h2 className="text-2xl font-bold text-black dark:text-white mb-1">
-            {mode === "login" ? t.auth.logIn : t.auth.signUp}
+            {mode === "forgot" ? t.auth.forgotPassword : mode === "login" ? t.auth.logIn : t.auth.signUp}
           </h2>
           <p className="text-sm text-stone-600 dark:text-stone-400 mb-6">
-            {mode === "login" ? t.auth.loginSubtitle : t.auth.signupSubtitle}
+            {mode === "forgot"
+              ? t.auth.forgotSubtitle
+              : mode === "login"
+                ? t.auth.loginSubtitle
+                : t.auth.signupSubtitle}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -107,26 +124,50 @@ export function AuthPage() {
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
-                {t.auth.password}
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-black dark:text-white rounded focus:outline-none focus:border-black dark:focus:border-white transition-colors"
-                placeholder={t.auth.passwordPlaceholder}
-                required
-                minLength={8}
-              />
-            </div>
+            {mode !== "forgot" && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+                  {t.auth.password}
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 text-black dark:text-white rounded focus:outline-none focus:border-black dark:focus:border-white transition-colors"
+                  placeholder={t.auth.passwordPlaceholder}
+                  required
+                  minLength={8}
+                />
+              </div>
+            )}
+
+            {mode === "login" && (
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("forgot");
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                  className="text-sm text-stone-500 hover:text-black dark:hover:text-white transition-colors"
+                >
+                  {t.auth.forgotPassword}
+                </button>
+              </div>
+            )}
 
             {error && (
               <p role="alert" className="text-sm text-[var(--brand)]">
                 {error}
+              </p>
+            )}
+
+            {success && (
+              <p role="status" className="text-sm text-green-600 dark:text-green-400">
+                {success}
               </p>
             )}
 
@@ -139,7 +180,9 @@ export function AuthPage() {
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 <>
-                  <span>{mode === "login" ? t.auth.logIn : t.auth.signUp}</span>
+                  <span>
+                    {mode === "forgot" ? t.auth.sendResetLink : mode === "login" ? t.auth.logIn : t.auth.signUp}
+                  </span>
                   <ArrowRight className="size-4" />
                 </>
               )}
@@ -147,16 +190,32 @@ export function AuthPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-stone-600 dark:text-stone-400">
-            {mode === "login" ? t.auth.noAccount : t.auth.hasAccount}{" "}
-            <button
-              onClick={() => {
-                setMode(mode === "login" ? "signup" : "login");
-                setError(null);
-              }}
-              className="font-medium text-black dark:text-white hover:underline"
-            >
-              {mode === "login" ? t.auth.signUp : t.auth.logIn}
-            </button>
+            {mode === "forgot" ? (
+              <button
+                onClick={() => {
+                  setMode("login");
+                  setError(null);
+                  setSuccess(null);
+                }}
+                className="font-medium text-black dark:text-white hover:underline"
+              >
+                {t.auth.backToLogin}
+              </button>
+            ) : (
+              <>
+                {mode === "login" ? t.auth.noAccount : t.auth.hasAccount}{" "}
+                <button
+                  onClick={() => {
+                    setMode(mode === "login" ? "signup" : "login");
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                  className="font-medium text-black dark:text-white hover:underline"
+                >
+                  {mode === "login" ? t.auth.signUp : t.auth.logIn}
+                </button>
+              </>
+            )}
           </p>
         </div>
       </div>

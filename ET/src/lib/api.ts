@@ -192,3 +192,114 @@ export async function queryWebSearch(queryText: string, queryId: string): Promis
     return { query_id: queryId, query_text: queryText, web_results: [], result_count: 0 };
   }
 }
+
+// ─── V3: Search API ───
+
+import { supabase } from "@/lib/supabase";
+import type { Story } from "@/types/database";
+
+/** Search stories by title or cluster_topic using ilike text matching. Returns best match or null. */
+export async function searchStories(query: string): Promise<Story | null> {
+  const pattern = `%${query.replace(/%/g, "")}%`;
+
+  const { data } = await supabase
+    .from("stories")
+    .select("*")
+    .or(`title.ilike.${pattern},cluster_topic.ilike.${pattern}`)
+    .order("source_count", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  return (data?.[0] as Story) ?? null;
+}
+
+/** Save a search query to search_history table. */
+export async function saveSearchHistory(userId: string, query: string, storyId?: string): Promise<void> {
+  await supabase.from("search_history").insert({
+    user_id: userId,
+    query,
+    result_story_id: storyId ?? null,
+  });
+}
+
+/** Fetch the user's most recent searches. */
+export async function fetchRecentSearches(userId: string, limit: number = 5): Promise<string[]> {
+  const { data } = await supabase
+    .from("search_history")
+    .select("query")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  return (data ?? []).map((row) => row.query as string);
+}
+
+// ─── V3: Canvas Chat API ───
+
+export type CanvasChatResponse = {
+  response: string;
+  story_id: string;
+};
+
+/**
+ * Sends a chat message to the canvas chat n8n webhook.
+ * Returns the AI response text (may contain <story_update> tags).
+ */
+export async function canvasChatMessage(
+  storyId: string,
+  userMessage: string,
+  storyContent: string,
+  chatHistory: { role: string; content: string }[],
+): Promise<CanvasChatResponse> {
+  if (!N8N_WEBHOOK_URL) {
+    throw new Error("Chat service is not configured");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 45_000);
+
+  try {
+    const res = await fetch(`${N8N_WEBHOOK_URL}/jaegeren-canvas-chat`, {
+      method: "POST",
+      headers: buildHeaders(),
+      body: JSON.stringify({
+        story_id: storyId,
+        user_message: userMessage,
+        story_content: storyContent,
+        chat_history: chatHistory,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      throw new Error("Chat request failed");
+    }
+
+    const text = await res.text();
+    if (!text || text.trim().length === 0) {
+      throw new Error("Empty chat response");
+    }
+
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // If not JSON, treat the raw text as the response
+      return { response: text, story_id: storyId };
+    }
+
+    const parsed = data as Record<string, unknown>;
+    return {
+      response: (parsed.response as string) ?? text,
+      story_id: storyId,
+    };
+  } catch (e) {
+    clearTimeout(timeout);
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("The analysis is taking longer than expected. Want me to try again?");
+    }
+    throw e;
+  }
+}

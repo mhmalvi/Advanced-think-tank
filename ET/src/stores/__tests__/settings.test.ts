@@ -8,7 +8,6 @@ beforeEach(() => {
     geographies: [],
     lenses: [],
     showCitationBrackets: true,
-    settingsOpen: false,
   });
 });
 
@@ -26,9 +25,6 @@ describe("settings store", () => {
       expect(useSettingsStore.getState().showCitationBrackets).toBe(true);
     });
 
-    it("has settings closed", () => {
-      expect(useSettingsStore.getState().settingsOpen).toBe(false);
-    });
   });
 
   describe("addTopic / removeTopic", () => {
@@ -105,16 +101,4 @@ describe("settings store", () => {
     });
   });
 
-  describe("openSettings / closeSettings", () => {
-    it("opens settings", () => {
-      useSettingsStore.getState().openSettings();
-      expect(useSettingsStore.getState().settingsOpen).toBe(true);
-    });
-
-    it("closes settings", () => {
-      useSettingsStore.getState().openSettings();
-      useSettingsStore.getState().closeSettings();
-      expect(useSettingsStore.getState().settingsOpen).toBe(false);
-    });
-  });
 });

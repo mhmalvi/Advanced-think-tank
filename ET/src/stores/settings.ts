@@ -29,10 +29,6 @@ type SettingsState = {
   showCitationBrackets: boolean;
   toggleCitationBrackets: () => void;
 
-  // Settings modal
-  settingsOpen: boolean;
-  openSettings: () => void;
-  closeSettings: () => void;
 };
 
 function generateId(): string {
@@ -92,9 +88,6 @@ export const useSettingsStore = create<SettingsState>()(
         set((state) => ({ showCitationBrackets: !state.showCitationBrackets }));
       },
 
-      settingsOpen: false,
-      openSettings: () => set({ settingsOpen: true }),
-      closeSettings: () => set({ settingsOpen: false }),
     }),
     {
       name: "jaegeren-settings",

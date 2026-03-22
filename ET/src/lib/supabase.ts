@@ -9,7 +9,13 @@ let _supabase: SupabaseClient<Database> | null = null;
 function getClient(): SupabaseClient<Database> {
   if (!_supabase) {
     if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY");
+      // Return a dummy client that rejects all calls — dev mode should bypass Supabase
+      _supabase = createClient<Database>(
+        "http://localhost:0",
+        "dummy-key-for-dev-mode",
+        { auth: { autoRefreshToken: false, persistSession: false } },
+      );
+      return _supabase;
     }
     _supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {

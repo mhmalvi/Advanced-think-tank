@@ -8,8 +8,7 @@ import { useAppStore } from "@/stores/app";
 import { useSettingsStore } from "@/stores/settings";
 import { ProtectedRoute } from "@/app/components/ProtectedRoute";
 import { LeftNav } from "@/app/components/LeftNav";
-import { RightSidebar } from "@/app/components/RightSidebar";
-import { SourceStrip } from "@/app/components/SourceStrip";
+import { OnboardingOverlay } from "@/app/components/OnboardingOverlay";
 import { Toaster } from "@/app/components/ui/sonner";
 
 const queryClient = new QueryClient({
@@ -24,32 +23,31 @@ const queryClient = new QueryClient({
 
 const LandingPage = lazy(() => import("@/pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 const AuthPage = lazy(() => import("@/pages/AuthPage").then((m) => ({ default: m.AuthPage })));
-const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
 const CommandCenter = lazy(() => import("@/pages/CommandCenter").then((m) => ({ default: m.CommandCenter })));
 const SettingsLayout = lazy(() => import("@/pages/SettingsLayout").then((m) => ({ default: m.SettingsLayout })));
 const UserProfileSettings = lazy(() => import("@/pages/UserProfileSettings").then((m) => ({ default: m.UserProfileSettings })));
 const CompanySettings = lazy(() => import("@/pages/CompanySettings").then((m) => ({ default: m.CompanySettings })));
+const CanvasPage = lazy(() => import("@/pages/CanvasPage").then((m) => ({ default: m.CanvasPage })));
+const PasswordResetPage = lazy(() => import("@/pages/PasswordResetPage").then((m) => ({ default: m.PasswordResetPage })));
+const SourcesPage = lazy(() => import("@/pages/SourcesPage").then((m) => ({ default: m.SourcesPage })));
+const AnalystPage = lazy(() => import("@/pages/AnalystPage").then((m) => ({ default: m.AnalystPage })));
+const BookmarksSettings = lazy(() => import("@/pages/BookmarksSettings").then((m) => ({ default: m.BookmarksSettings })));
+const HistorySettings = lazy(() => import("@/pages/HistorySettings").then((m) => ({ default: m.HistorySettings })));
 
 function DashboardLayout() {
   const leftNavOpen = useAppStore((s) => s.leftNavOpen);
-  const rightSidebarOpen = useAppStore((s) => s.rightSidebarOpen);
+  const needsOnboarding = useAuthStore((s) => s.needsOnboarding);
   const fetchSources = useAppStore((s) => s.fetchSources);
   const fetchRecentArticles = useAppStore((s) => s.fetchRecentArticles);
-  const fetchRecentQueries = useAppStore((s) => s.fetchRecentQueries);
-  const fetchQueryCountToday = useAppStore((s) => s.fetchQueryCountToday);
-  const fetchSystemHealth = useAppStore((s) => s.fetchSystemHealth);
 
   const loadData = useCallback(() => {
     fetchSources();
     fetchRecentArticles();
-    fetchRecentQueries();
-    fetchQueryCountToday();
-    fetchSystemHealth();
-  }, [fetchSources, fetchRecentArticles, fetchRecentQueries, fetchQueryCountToday, fetchSystemHealth]);
+  }, [fetchSources, fetchRecentArticles]);
 
   useEffect(() => {
     loadData();
-    const interval = setInterval(loadData, 5 * 60 * 1000); // Refresh every 5 minutes
+    const interval = setInterval(loadData, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [loadData]);
 
@@ -58,15 +56,10 @@ function DashboardLayout() {
       <div className="flex h-[100dvh] w-[100dvw] bg-stone-100 dark:bg-[#0f1011] overflow-hidden text-stone-800 dark:text-stone-200">
         <LeftNav collapsed={!leftNavOpen} />
         <div className="flex-1 overflow-hidden m-2 sm:m-3 md:m-4 border border-stone-300 dark:border-stone-800/50 rounded-xl bg-white dark:bg-[#0a0a0b] shadow-2xl flex flex-col relative min-w-0">
-          <SourceStrip />
-          <div className="flex flex-1 overflow-hidden">
-            <div className="flex-1 overflow-hidden flex flex-col min-w-0">
-              <Outlet />
-            </div>
-            {rightSidebarOpen && <RightSidebar />}
-          </div>
+          <Outlet />
         </div>
       </div>
+      {needsOnboarding && <OnboardingOverlay />}
     </ProtectedRoute>
   );
 }
@@ -142,12 +135,17 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/auth/reset" element={<PasswordResetPage />} />
                 <Route element={<DashboardLayout />}>
                   <Route path="/dashboard" element={<CommandCenter />} />
-                  <Route path="/dashboard/legacy" element={<DashboardPage />} />
+                  <Route path="/canvas/:storyId" element={<CanvasPage />} />
+                  <Route path="/sources" element={<SourcesPage />} />
+                  <Route path="/analyst" element={<AnalystPage />} />
                   <Route path="/settings" element={<SettingsLayout />}>
                     <Route path="profile" element={<UserProfileSettings />} />
                     <Route path="company" element={<CompanySettings />} />
+                    <Route path="bookmarks" element={<BookmarksSettings />} />
+                    <Route path="history" element={<HistorySettings />} />
                     <Route index element={<Navigate to="profile" replace />} />
                   </Route>
                 </Route>

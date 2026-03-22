@@ -71,6 +71,18 @@ export function safeFormatDateTime(value: string | null | undefined, fallback: s
   return date.toLocaleString();
 }
 
+/** Formats a publication date consistently: "18 Mar 2026". Uses locale-aware formatting. */
+export function formatPublicationDate(value: string | null | undefined, locale: string = "en"): string {
+  if (!value) return "\u2014";
+  const date = parseDate(value);
+  if (!date) return "\u2014";
+  return date.toLocaleDateString(locale === "da" ? "da-DK" : "en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 /** Returns a relative time string like "2h ago" or a short date for older items. */
 export function relativeTime(value: string | null | undefined): string {
   if (!value) return "\u2014";
