@@ -198,17 +198,33 @@ export async function queryWebSearch(queryText: string, queryId: string): Promis
 import { supabase } from "@/lib/supabase";
 import type { Story } from "@/types/database";
 
-/** Search stories by title or cluster_topic using ilike text matching. Returns best match or null. */
+/** Search stories by splitting query into words and matching any word against title, cluster_topic, or synopsis. Returns best match or null. */
 export async function searchStories(query: string): Promise<Story | null> {
-  const pattern = `%${query.replace(/%/g, "")}%`;
+  const words = query
+    .replace(/[%,()]/g, "")
+    .split(/\s+/)
+    .filter((w) => w.length >= 2);
 
-  const { data } = await supabase
+  if (words.length === 0) return null;
+
+  // Build OR filter: each word matches against title, cluster_topic, or synopsis
+  const filters = words.flatMap((w) => {
+    const p = `%${w}%`;
+    return [`title.ilike.${p}`, `cluster_topic.ilike.${p}`, `synopsis.ilike.${p}`];
+  });
+
+  const { data, error } = await supabase
     .from("stories")
     .select("*")
-    .or(`title.ilike.${pattern},cluster_topic.ilike.${pattern}`)
+    .or(filters.join(","))
     .order("source_count", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(1);
+
+  if (error) {
+    console.error("searchStories error:", error.message);
+    return null;
+  }
 
   return (data?.[0] as Story) ?? null;
 }
@@ -298,7 +314,7 @@ export async function canvasChatMessage(
   } catch (e) {
     clearTimeout(timeout);
     if (e instanceof DOMException && e.name === "AbortError") {
-      throw new Error("The analysis is taking longer than expected. Want me to try again?");
+      throw new Error("The analysis is taking longer than expected. Want me to try again?", { cause: e });
     }
     throw e;
   }

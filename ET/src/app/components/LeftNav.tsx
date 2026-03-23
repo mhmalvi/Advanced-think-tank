@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   Database,
   Bookmark,
-  Settings,
   PanelLeftClose,
   PanelLeftOpen,
   TrendingUp,
@@ -13,7 +12,6 @@ import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import { Link, useLocation } from "react-router-dom";
 import { useAppStore } from "@/stores/app";
 import { useStoriesStore } from "@/stores/stories";
-import { relativeTime } from "@/lib/utils";
 
 interface LeftNavProps {
   collapsed?: boolean;
@@ -22,8 +20,8 @@ interface LeftNavProps {
 const mainNav = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Sources", path: "/sources", icon: Database },
-  { label: "Bookmarks", path: "/settings/bookmarks", icon: Bookmark },
-  { label: "Settings", path: "/settings/profile", icon: Settings },
+  { label: "Bookmarks", path: "/bookmarks", icon: Bookmark },
+  { label: "History", path: "/history", icon: Clock },
 ];
 
 export function LeftNav({ collapsed = false }: LeftNavProps) {
@@ -32,9 +30,7 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
   const stories = useStoriesStore((s) => s.stories);
 
   // Top 5 stories by source_count for "Trending"
-  const trending = [...stories]
-    .sort((a, b) => b.source_count - a.source_count)
-    .slice(0, 5);
+  const trending = [...stories].sort((a, b) => b.source_count - a.source_count).slice(0, 5);
 
   const isNavActive = (path: string) => {
     if (path === "/dashboard") return location.pathname === "/dashboard";
@@ -62,8 +58,8 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
               title={item.label}
               className={`p-2 rounded transition-colors ${
                 active
-                  ? "bg-stone-200 dark:bg-stone-800 text-black dark:text-white"
-                  : "text-stone-500 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800"
+                  ? "bg-[#E30613]/10 text-[#E30613] dark:text-[#ff4444]"
+                  : "text-stone-500 hover:text-[#E30613] dark:hover:text-[#ff4444] hover:bg-stone-100 dark:hover:bg-stone-800"
               }`}
             >
               <item.icon className="size-4" />
@@ -95,8 +91,8 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
             <PanelLeftClose className="size-4" />
           </button>
         </div>
-        <h1 className="font-bold text-black dark:text-white tracking-tight text-sm">Jaegeren</h1>
-        <p className="text-[10px] text-stone-600 dark:text-stone-400 mt-0.5">Geo-economic intelligence</p>
+        <h1 className="font-bold text-black dark:text-white tracking-tight text-sm">Jægeren</h1>
+        <p className="text-[10px] text-[#E30613] font-medium mt-0.5">Erhvervslivets Tænketank</p>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2">
@@ -110,8 +106,8 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
                 to={item.path}
                 className={`w-full text-left px-2 py-1.5 text-xs rounded flex items-center gap-2 transition-colors ${
                   active
-                    ? "bg-stone-200 dark:bg-stone-800 text-black dark:text-white font-medium"
-                    : "text-stone-700 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800"
+                    ? "bg-[#E30613]/10 text-[#E30613] dark:text-[#ff4444] font-medium border-l-2 border-[#E30613] -ml-[2px] pl-[calc(0.5rem+2px)]"
+                    : "text-stone-700 dark:text-stone-300 hover:text-[#E30613] dark:hover:text-[#ff4444] hover:bg-stone-100 dark:hover:bg-stone-800"
                 }`}
               >
                 <item.icon className="size-3.5" />
@@ -148,17 +144,6 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
             </ul>
           </div>
         )}
-
-        {/* Recent sessions — placeholder until Epic 6 */}
-        <div className="mb-4">
-          <div className="flex items-center gap-2 px-1 mb-1.5 text-stone-900 dark:text-stone-100">
-            <Clock className="size-3.5" />
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider">Recent</h2>
-          </div>
-          <p className="px-2 py-1 text-[10px] text-stone-400 dark:text-stone-600 italic">
-            No recent sessions
-          </p>
-        </div>
       </nav>
     </aside>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Send,
@@ -11,17 +11,21 @@ import {
   MessageSquare,
   FileText,
   Newspaper,
+  ExternalLink,
 } from "lucide-react";
 import { useCanvasStore } from "@/stores/canvas";
+import { useInteractionsStore } from "@/stores/interactions";
 import { useLocaleStore } from "@/stores/locale";
 import { StoryLabels } from "@/app/components/StoryLabel";
+import { DanishImpactCallout } from "@/app/components/DanishImpactCallout";
 import { StoryRenderer } from "@/app/components/StoryRenderer";
 import { StoryTimeline } from "@/app/components/StoryTimeline";
 import { canvasChatMessage } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import { formatPublicationDate } from "@/lib/utils";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { toast } from "sonner";
-import type { CanvasSession } from "@/types/database";
+import type { CanvasSession as _CanvasSession } from "@/types/database";
 
 // ─── Chat Panel ───
 function ChatPanel() {
@@ -59,12 +63,7 @@ function ChatPanel() {
 
       try {
         const historyForApi = chatMessages.map((m) => ({ role: m.role, content: m.content }));
-        const result = await canvasChatMessage(
-          currentStory?.id ?? "",
-          trimmed,
-          currentContent ?? "",
-          historyForApi,
-        );
+        const result = await canvasChatMessage(currentStory?.id ?? "", trimmed, currentContent ?? "", historyForApi);
 
         let responseText = result.response;
 
@@ -82,14 +81,26 @@ function ChatPanel() {
 
         addAssistantMessage(responseText);
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "Something went wrong. Your conversation is saved — try again.";
+        const errorMsg =
+          err instanceof Error ? err.message : "Something went wrong. Your conversation is saved — try again.";
         addAssistantMessage(errorMsg);
       } finally {
         setChatLoading(false);
         saveSession();
       }
     },
-    [input, chatLoading, chatMessages, currentStory, currentContent, addUserMessage, addAssistantMessage, setChatLoading, saveSession, updateStoryContent],
+    [
+      input,
+      chatLoading,
+      chatMessages,
+      currentStory,
+      currentContent,
+      addUserMessage,
+      addAssistantMessage,
+      setChatLoading,
+      saveSession,
+      updateStoryContent,
+    ],
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -153,10 +164,7 @@ function ChatPanel() {
         )}
 
         {chatMessages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+          <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[85%] px-3 py-2 rounded-lg text-sm leading-relaxed ${
                 msg.role === "user"
@@ -207,15 +215,272 @@ function ChatPanel() {
 
 // ─── Story Panel ───
 function StoryPanel() {
+  const navigate = useNavigate();
   const currentStory = useCanvasStore((s) => s.currentStory);
   const currentContent = useCanvasStore((s) => s.currentContent);
   const storyVersions = useCanvasStore((s) => s.storyVersions);
   const undoStoryChange = useCanvasStore((s) => s.undoStoryChange);
   const locale = useLocaleStore((s) => s.locale);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const { toggleLike, toggleDislike, toggleBookmark, getInteraction, isBookmarked } = useInteractionsStore();
 
   if (!currentStory) return null;
 
   const hasModifications = storyVersions.length > 1;
+  const interaction = getInteraction(currentStory.id);
+  const bookmarked = isBookmarked(currentStory.id);
+
+  const handleExport = async (format: string) => {
+    setExportOpen(false);
+    const title = currentStory.title;
+    const content = currentContent || currentStory.synthetic_content || "";
+    const dateStr = new Date().toISOString().split("T")[0];
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 40);
+    const labels = (currentStory.labels || []).map((l: { text: string }) => l.text).join(", ");
+    const plainContent = content.replace(/[#*_`[\]]/g, "").replace(/<[^>]+>/g, "");
+
+    if (format === "email") {
+      const subject = encodeURIComponent(`${title} — ET Hunter Briefing`);
+      const body = encodeURIComponent(
+        `${title}\n\n${currentStory.synopsis || ""}\n\n${plainContent}\n\n---\nSources: ${currentStory.source_count} | ${dateStr}\nLabels: ${labels}\n\nExported from ET Hunter (et.20thousandleagues.com)`,
+      );
+      window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
+      toast.success("Opening email client");
+    } else if (format === "docx") {
+      try {
+        const { Document, Paragraph, TextRun, HeadingLevel, Packer } = await import("docx");
+        const { saveAs } = await import("file-saver");
+
+        const paragraphs: InstanceType<typeof Paragraph>[] = [];
+
+        // Header
+        paragraphs.push(
+          new Paragraph({
+            children: [new TextRun({ text: "ET Hunter — Intelligence Briefing", size: 18, color: "888888" })],
+            spacing: { after: 100 },
+          }),
+        );
+        paragraphs.push(
+          new Paragraph({
+            children: [new TextRun({ text: dateStr, size: 18, color: "888888" })],
+            spacing: { after: 300 },
+          }),
+        );
+
+        // Title
+        paragraphs.push(
+          new Paragraph({
+            children: [new TextRun({ text: title, bold: true, size: 32 })],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 200 },
+          }),
+        );
+
+        // Synopsis
+        if (currentStory.synopsis) {
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: currentStory.synopsis, italics: true, color: "555555", size: 22 })],
+              spacing: { after: 200 },
+            }),
+          );
+        }
+
+        // Labels
+        if (labels) {
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: `Labels: ${labels}`, size: 18, color: "888888" })],
+              spacing: { after: 200 },
+            }),
+          );
+        }
+
+        // Timeline
+        const timelineEntries = currentStory.timeline_entries || [];
+        if (timelineEntries.length > 0) {
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: "Timeline", bold: true, size: 24 })],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 200, after: 100 },
+            }),
+          );
+          for (const entry of timelineEntries) {
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({ text: `${entry.timestamp || ""} — `, bold: true, size: 20 }),
+                  new TextRun({ text: entry.summary || "", size: 20 }),
+                ],
+                spacing: { after: 80 },
+              }),
+            );
+          }
+        }
+
+        // Content — parse markdown into paragraphs
+        const lines = content.split("\n");
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) {
+            paragraphs.push(new Paragraph({ spacing: { after: 100 } }));
+            continue;
+          }
+          if (trimmed.startsWith("## ")) {
+            paragraphs.push(
+              new Paragraph({
+                children: [new TextRun({ text: trimmed.replace(/^##\s*/, ""), bold: true, size: 26 })],
+                heading: HeadingLevel.HEADING_2,
+                spacing: { before: 200, after: 100 },
+              }),
+            );
+          } else if (trimmed.startsWith("### ")) {
+            paragraphs.push(
+              new Paragraph({
+                children: [new TextRun({ text: trimmed.replace(/^###\s*/, ""), bold: true, size: 22 })],
+                heading: HeadingLevel.HEADING_3,
+                spacing: { before: 150, after: 80 },
+              }),
+            );
+          } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+            const bulletText = trimmed.replace(/^[-*]\s*/, "");
+            const runs: InstanceType<typeof TextRun>[] = [];
+            bulletText.split(/(\*\*.*?\*\*)/).forEach((part: string) => {
+              if (part.startsWith("**") && part.endsWith("**")) {
+                runs.push(new TextRun({ text: part.slice(2, -2), bold: true, size: 20 }));
+              } else {
+                runs.push(new TextRun({ text: part, size: 20 }));
+              }
+            });
+            paragraphs.push(new Paragraph({ children: runs, bullet: { level: 0 }, spacing: { after: 60 } }));
+          } else {
+            const runs: InstanceType<typeof TextRun>[] = [];
+            trimmed
+              .replace(/<[^>]+>/g, "")
+              .split(/(\*\*.*?\*\*)/)
+              .forEach((part: string) => {
+                if (part.startsWith("**") && part.endsWith("**")) {
+                  runs.push(new TextRun({ text: part.slice(2, -2), bold: true, size: 20 }));
+                } else {
+                  runs.push(new TextRun({ text: part, size: 20 }));
+                }
+              });
+            paragraphs.push(new Paragraph({ children: runs, spacing: { after: 100 } }));
+          }
+        }
+
+        const doc = new Document({
+          sections: [{ properties: {}, children: paragraphs }],
+          creator: "ET Hunter",
+          title: title,
+        });
+
+        const blob = await Packer.toBlob(doc);
+        saveAs(blob, `${slug}-${dateStr}.docx`);
+        toast.success("Exported as Word document");
+      } catch (_err) {
+        toast.error("Failed to generate Word document");
+      }
+    } else if (format === "pdf") {
+      try {
+        const { jsPDF } = await import("jspdf");
+        const doc = new jsPDF({ unit: "mm", format: "a4" });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const maxWidth = pageWidth - margin * 2;
+        let y = margin;
+
+        const addText = (
+          text: string,
+          fontSize: number,
+          opts: { bold?: boolean; color?: string; maxY?: number } = {},
+        ) => {
+          doc.setFontSize(fontSize);
+          if (opts.bold) doc.setFont("helvetica", "bold");
+          else doc.setFont("helvetica", "normal");
+          if (opts.color) doc.setTextColor(opts.color);
+          else doc.setTextColor("#1a1a1a");
+
+          const lines = doc.splitTextToSize(text, maxWidth);
+          for (const line of lines) {
+            if (y > 270) {
+              doc.addPage();
+              y = margin;
+            }
+            doc.text(line, margin, y);
+            y += fontSize * 0.45;
+          }
+          y += 2;
+        };
+
+        // Header
+        addText("ET Hunter — Intelligence Briefing", 9, { color: "#888888" });
+        addText(dateStr, 9, { color: "#888888" });
+        y += 4;
+
+        // Title
+        addText(title, 16, { bold: true });
+        y += 2;
+
+        // Synopsis
+        if (currentStory.synopsis) {
+          doc.setDrawColor("#cc0000");
+          doc.line(margin, y, margin, y + 8);
+          addText(currentStory.synopsis, 10, { color: "#555555" });
+          y += 4;
+        }
+
+        // Labels
+        if (labels) {
+          addText(`Labels: ${labels}`, 8, { color: "#888888" });
+          y += 4;
+        }
+
+        // Content
+        const contentLines = plainContent.split("\n");
+        for (const line of contentLines) {
+          const trimmed = line.trim();
+          if (!trimmed) {
+            y += 3;
+            continue;
+          }
+          if (trimmed.startsWith("## ")) {
+            y += 4;
+            addText(trimmed.replace(/^##\s*/, ""), 12, { bold: true });
+          } else if (trimmed.startsWith("### ")) {
+            y += 2;
+            addText(trimmed.replace(/^###\s*/, ""), 11, { bold: true });
+          } else {
+            addText(trimmed, 10);
+          }
+        }
+
+        doc.save(`${slug}-${dateStr}.pdf`);
+        toast.success("Exported as PDF");
+      } catch (_err) {
+        toast.error("Failed to generate PDF");
+      }
+    } else if (format === "html") {
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.7}h1{font-size:1.8em}h2{font-size:1.3em;border-bottom:1px solid #ddd;padding-bottom:4px}blockquote{border-left:3px solid #c00;padding-left:16px;color:#555;margin:16px 0}.label{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.75em;background:#f0f0f0;margin:2px}.header{color:#888;font-size:0.85em;margin-bottom:24px}</style></head><body><div class="header">ET Hunter — Intelligence Briefing | ${dateStr}</div><h1>${title}</h1><blockquote>${currentStory.synopsis || ""}</blockquote><p><small>${currentStory.source_count} sources</small></p><div>${(currentStory.labels || []).map((l: { text: string }) => `<span class="label">${l.text}</span>`).join(" ")}</div><hr>${content
+        .replace(/^## (.*$)/gm, "<h2>$1</h2>")
+        .replace(/^### (.*$)/gm, "<h3>$1</h3>")
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\n/g, "<br>")}</body></html>`;
+      const blob = new Blob([html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${slug}-${dateStr}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Exported as HTML");
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden">
@@ -238,29 +503,74 @@ function StoryPanel() {
             </button>
           )}
           <button
-            className="p-1.5 rounded text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            onClick={() => toggleBookmark(currentStory.id)}
+            className={`p-1.5 rounded transition-colors ${bookmarked ? "text-amber-500 bg-amber-50 dark:bg-amber-900/20" : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"}`}
             title="Bookmark"
           >
-            <Bookmark className="size-4" />
+            <Bookmark className="size-4" fill={bookmarked ? "currentColor" : "none"} />
           </button>
           <button
-            className="p-1.5 rounded text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            onClick={() => toggleLike(currentStory.id)}
+            className={`p-1.5 rounded transition-colors ${interaction === "like" ? "text-green-600 bg-green-50 dark:bg-green-900/20" : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"}`}
             title="Like"
           >
-            <ThumbsUp className="size-4" />
+            <ThumbsUp className="size-4" fill={interaction === "like" ? "currentColor" : "none"} />
           </button>
           <button
-            className="p-1.5 rounded text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            onClick={() => toggleDislike(currentStory.id)}
+            className={`p-1.5 rounded transition-colors ${interaction === "dislike" ? "text-red-500 bg-red-50 dark:bg-red-900/20" : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"}`}
             title="Dislike"
           >
-            <ThumbsDown className="size-4" />
+            <ThumbsDown className="size-4" fill={interaction === "dislike" ? "currentColor" : "none"} />
           </button>
-          <button
-            className="p-1.5 rounded text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-            title="Export"
-          >
-            <Download className="size-4" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setExportOpen(!exportOpen)}
+              className="p-1.5 rounded text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+              title="Export"
+            >
+              <Download className="size-4" />
+            </button>
+            {exportOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setExportOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg z-20 py-1">
+                  <button
+                    onClick={() => navigate("/analyst")}
+                    className="w-full text-left px-4 py-2 text-sm text-stone-400 cursor-default"
+                    title="Coming soon — Analyst Mode"
+                  >
+                    Send to Analyst
+                  </button>
+                  <div className="border-t border-stone-100 dark:border-stone-700 my-0.5" />
+                  <button
+                    onClick={() => handleExport("email")}
+                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700"
+                  >
+                    Email
+                  </button>
+                  <button
+                    onClick={() => handleExport("docx")}
+                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700"
+                  >
+                    Word (.docx)
+                  </button>
+                  <button
+                    onClick={() => handleExport("pdf")}
+                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700"
+                  >
+                    PDF (.pdf)
+                  </button>
+                  <button
+                    onClick={() => handleExport("html")}
+                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700"
+                  >
+                    HTML Report (.html)
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -273,20 +583,89 @@ function StoryPanel() {
           </h1>
 
           {currentStory.synopsis && (
-            <p className="text-base text-stone-500 dark:text-stone-400 mb-4 leading-relaxed">
-              {currentStory.synopsis}
-            </p>
+            <p className="text-base text-stone-500 dark:text-stone-400 mb-4 leading-relaxed">{currentStory.synopsis}</p>
           )}
 
           <div className="mb-6">
             <StoryLabels labels={currentStory.labels} max={10} />
           </div>
 
+          <DanishImpactCallout story={currentStory} />
+
           <StoryTimeline entries={currentStory.timeline_entries} locale={locale} />
 
           {/* Rich story content */}
           <StoryRenderer content={currentContent ?? ""} />
+
+          {/* Source articles with links */}
+          <SourceArticles articleIds={currentStory.source_article_ids ?? []} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Source Articles ───
+type SourceArticle = { id: string; title: string; url: string; published_at: string; source_name: string };
+
+function SourceArticles({ articleIds }: { articleIds: string[] }) {
+  const [articles, setArticles] = useState<SourceArticle[]>([]);
+  const locale = useLocaleStore((s) => s.locale);
+
+  const idsKey = articleIds.join(",");
+  const stableIds = useMemo(() => articleIds, [idsKey]);
+
+  useEffect(() => {
+    if (stableIds.length === 0) return;
+    supabase
+      .from("articles")
+      .select("id, title, url, published_at, source:sources(name)")
+      .in("id", stableIds)
+      .order("published_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) {
+          setArticles(
+            data.map((a: Record<string, unknown>) => ({
+              id: a.id as string,
+              title: a.title as string,
+              url: a.url as string,
+              published_at: a.published_at as string,
+              source_name: (a.source as { name: string } | null)?.name ?? "",
+            })),
+          );
+        }
+      });
+  }, [stableIds]);
+
+  if (articles.length === 0) return null;
+
+  return (
+    <div className="mt-10 pt-6 border-t-2 border-stone-200 dark:border-stone-800">
+      <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400 mb-4">
+        Sources ({articles.length})
+      </h2>
+      <div className="space-y-2">
+        {articles.map((article) => (
+          <a
+            key={article.id}
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-3 p-3 rounded-lg border border-stone-200 dark:border-stone-800 hover:border-stone-400 dark:hover:border-stone-600 bg-stone-50 dark:bg-stone-900/50 transition-colors group"
+          >
+            <ExternalLink className="size-3.5 mt-0.5 shrink-0 text-stone-400 group-hover:text-[#E30613] transition-colors" />
+            <div className="min-w-0 flex-1">
+              <span className="text-sm font-medium text-stone-800 dark:text-stone-200 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] transition-colors line-clamp-2">
+                {article.title}
+              </span>
+              <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-400">
+                <span className="font-medium">{article.source_name}</span>
+                <span>&bull;</span>
+                <span>{formatPublicationDate(article.published_at, locale)}</span>
+              </div>
+            </div>
+          </a>
+        ))}
       </div>
     </div>
   );
@@ -342,9 +721,7 @@ function MobileCanvas() {
           Chat
         </button>
       </div>
-      <div className="flex-1 overflow-hidden">
-        {tab === "story" ? <StoryPanel /> : <ChatPanel />}
-      </div>
+      <div className="flex-1 overflow-hidden">{tab === "story" ? <StoryPanel /> : <ChatPanel />}</div>
     </div>
   );
 }

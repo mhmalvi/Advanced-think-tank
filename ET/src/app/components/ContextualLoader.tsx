@@ -26,16 +26,8 @@ const messages: Record<LoadingContext, string[]> = {
     "Checking if Denmark should worry...",
     "Connecting the dots between Washington and Copenhagen...",
   ],
-  exporting: [
-    "Formatting your briefing...",
-    "Making it look official...",
-    "Ready for the boardroom...",
-  ],
-  loading: [
-    "Preparing your briefing...",
-    "Warming up the canvas...",
-    "Almost ready...",
-  ],
+  exporting: ["Formatting your briefing...", "Making it look official...", "Ready for the boardroom..."],
+  loading: ["Preparing your briefing...", "Warming up the canvas...", "Almost ready..."],
 };
 
 const messagesDa: Record<LoadingContext, string[]> = {
@@ -55,16 +47,8 @@ const messagesDa: Record<LoadingContext, string[]> = {
     "Tjekker om Danmark bor bekymre sig...",
     "Forbinder prikkerne mellem Washington og Koebenhavn...",
   ],
-  exporting: [
-    "Formaterer din briefing...",
-    "Goer det officielt...",
-    "Klar til bestyrelseslokalet...",
-  ],
-  loading: [
-    "Forbereder din briefing...",
-    "Varmer canvasset op...",
-    "Naesten klar...",
-  ],
+  exporting: ["Formaterer din briefing...", "Goer det officielt...", "Klar til bestyrelseslokalet..."],
+  loading: ["Forbereder din briefing...", "Varmer canvasset op...", "Naesten klar..."],
 };
 
 export function ContextualLoader({ context, className }: ContextualLoaderProps) {
@@ -90,7 +74,7 @@ export function ContextualLoader({ context, className }: ContextualLoaderProps) 
     <div className={cn("flex flex-col items-center gap-3", className)}>
       {/* Progress bar */}
       <div className="w-full max-w-xs h-1 bg-stone-200 dark:bg-stone-800 rounded-full overflow-hidden">
-        <div className="h-full bg-[#ef4444] rounded-full animate-[indeterminate_1.5s_ease-in-out_infinite]" />
+        <div className="h-full bg-[#E30613] rounded-full animate-[indeterminate_1.5s_ease-in-out_infinite]" />
       </div>
       <p
         className={cn(

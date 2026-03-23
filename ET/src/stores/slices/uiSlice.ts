@@ -5,6 +5,8 @@ export type UISlice = {
   // Mobile layout
   leftNavOpen: boolean;
   toggleLeftNav: () => void;
+  rightSidebarOpen: boolean;
+  toggleRightSidebar: () => void;
   closeAllPanels: () => void;
 
   // Error management
@@ -16,13 +18,18 @@ export type UISlice = {
 
 export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => ({
   leftNavOpen: true,
+  rightSidebarOpen: true,
 
   toggleLeftNav: () => {
     set((state) => ({ leftNavOpen: !state.leftNavOpen }));
   },
 
+  toggleRightSidebar: () => {
+    set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen }));
+  },
+
   closeAllPanels: () => {
-    set({ leftNavOpen: false });
+    set({ leftNavOpen: false, rightSidebarOpen: false });
   },
 
   clearError: () => {
@@ -44,6 +51,7 @@ export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => (
       sourceArticles: [],
       sourceArticlesLoading: false,
       leftNavOpen: true,
+      rightSidebarOpen: true,
       lastIngestionTime: null,
       totalArticleCount: 0,
     });

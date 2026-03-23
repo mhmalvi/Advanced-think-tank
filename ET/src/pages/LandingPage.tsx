@@ -82,8 +82,8 @@ export function LandingPage() {
               {/* Status badge */}
               <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-stone-200 dark:border-stone-800 bg-background px-4 py-1.5 text-xs text-muted-foreground">
                 <span className="relative flex size-2">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#E30613] opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-[#E30613]" />
                 </span>
                 {t.landing.sourcesSubtitle}
               </div>

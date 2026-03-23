@@ -1,79 +1,95 @@
 {
-  "id": "canvas-chat-v3",
+  "id": "ki4tOKIt6W0lEHhY",
   "name": "Jaegeren Canvas Chat Pipeline",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "jaegeren-canvas-chat",
-        "responseMode": "responseNode",
+        "responseMode": "lastNode",
         "options": {}
       },
       "id": "webhook-trigger",
       "name": "Chat Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
+      "typeVersion": 2,
       "position": [0, 0],
       "webhookId": "jaegeren-canvas-chat"
     },
     {
       "parameters": {
-        "model": "claude-sonnet-4-20250514",
-        "messages": {
-          "values": [
+        "jsCode": "// Build the Claude API request from webhook input\nconst body = $('Chat Webhook').first().json.body;\n\nconst storyContent = body.story_content || '';\nconst userMessage = body.user_message || '';\nconst chatHistory = body.chat_history || [];\nconst storyId = body.story_id || '';\n\n// Build chat history for Claude messages format\nconst messages = [];\n\n// Add previous chat history\nfor (const msg of chatHistory.slice(-10)) {\n  messages.push({\n    role: msg.role === 'user' ? 'user' : 'assistant',\n    content: msg.content\n  });\n}\n\n// Add the current user message with story context\nmessages.push({\n  role: 'user',\n  content: `CURRENT STORY CONTENT:\\n${storyContent}\\n\\n---\\n\\nUSER MESSAGE:\\n${userMessage}`\n});\n\nreturn [{\n  json: {\n    story_id: storyId,\n    messages: messages\n  }\n}];"
+      },
+      "id": "prepare-prompt",
+      "name": "Prepare Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "role": "system",
-              "content": "You are an intelligence analyst assistant for Jægeren (ET Hunter), serving Danish business professionals and senior analysts.\n\nThe user is reading a synthesized news story and engaging with it through iterative prompting. This follows a \"Contract then Expand\" model — the user has narrowed down to this topic and now wants to go deeper.\n\nRULES:\n1. Answer questions in the chat. Be concise, direct, analyst-grade.\n2. When you want to modify the story, ASK FIRST: \"Would you like me to add this to the story?\" — unless the user explicitly asked for a change (e.g., \"shorten this\", \"add the Senate angle\").\n3. When modifying, return updated content in <story_update>full updated story</story_update> tags.\n4. Stay within the topic scope. Do NOT drift to unrelated subjects.\n5. Focus on the last 24 hours. Don't rehash background unless asked.\n6. If source material is limited: \"Limited source material. I can look for a broader perspective if you wish?\" — NEVER fabricate or pad.\n7. You can suggest: \"I can go deeper into [X] or explore [Y]\" — but don't auto-generate unsourced content.\n8. The user may ask you to: shorten, expand, remove generic text, add a new angle, translate, restructure, add analysis, compare with other events. Support all of these.\n9. Properly render Danish characters (Æ, Ø, Å) — never garbled or ASCII fallback.\n10. Preserve all existing tags: <pull_quote>, <chart_data>, <stat_callout>, [BACKGROUND] markers. Add new ones only when supported by sources."
+              "name": "anthropic-version",
+              "value": "2023-06-01"
             },
             {
-              "role": "user",
-              "content": "={{ 'CURRENT STORY CONTENT:\\n' + $json.body.story_content + '\\n\\nCHAT HISTORY:\\n' + JSON.stringify($json.body.chat_history) + '\\n\\nUSER MESSAGE:\\n' + $json.body.user_message }}"
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 4096, system: 'You are an intelligence analyst assistant for Jægeren (ET Hunter), serving Danish business professionals and senior analysts.\\n\\nThe user is reading a synthesized news story and engaging with it through iterative prompting. This follows a \\\"Contract then Expand\\\" model — the user has narrowed down to this topic and now wants to go deeper.\\n\\nRULES:\\n1. Answer questions in the chat. Be concise, direct, analyst-grade.\\n2. When you want to modify the story, ASK FIRST: \\\"Would you like me to add this to the story?\\\" — unless the user explicitly asked for a change (e.g., \\\"shorten this\\\", \\\"add the Senate angle\\\").\\n3. When modifying, return updated content in <story_update>full updated story</story_update> tags.\\n4. Stay within the topic scope. Do NOT drift to unrelated subjects.\\n5. Focus on the last 24 hours. Do not rehash background unless asked.\\n6. If source material is limited: \\\"Limited source material. I can look for a broader perspective if you wish?\\\" — NEVER fabricate or pad.\\n7. You can suggest: \\\"I can go deeper into [X] or explore [Y]\\\" — but do not auto-generate unsourced content.\\n8. The user may ask you to: shorten, expand, remove generic text, add a new angle, translate, restructure, add analysis, compare with other events. Support all of these.\\n9. Properly render Danish characters (Æ, Ø, Å) — never garbled or ASCII fallback.\\n10. Preserve all existing tags: <pull_quote>, <chart_data>, <stat_callout>, [BACKGROUND] markers. Add new ones only when supported by sources.', messages: $json.messages }) }}",
         "options": {
-          "maxTokens": 4096,
-          "temperature": 0.3
+          "timeout": 60000
         }
       },
-      "id": "claude-chat",
-      "name": "Claude Chat",
-      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
-      "typeVersion": 1.3,
-      "position": [220, 0],
+      "id": "call-claude",
+      "name": "Call Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
       "credentials": {
-        "anthropicApi": {
-          "id": "ANTHROPIC_CREDENTIAL_ID",
+        "httpHeaderAuth": {
+          "id": "zApvfwLIqjpSWD9f",
           "name": "Anthropic API Key"
         }
       }
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ response: $json.message?.content ?? $json.text ?? $json.output ?? 'No response generated', story_id: $('Chat Webhook').first().json.body.story_id }) }}"
+        "jsCode": "// Parse Claude response and return to frontend\nconst item = $input.first();\nconst storyId = $('Prepare Prompt').first().json.story_id;\n\nlet responseText = '';\n\ntry {\n  if (item.json.content && Array.isArray(item.json.content)) {\n    responseText = item.json.content.map(c => c.text || '').join('');\n  } else if (typeof item.json === 'string') {\n    responseText = item.json;\n  } else if (item.json.error) {\n    responseText = 'I encountered an error processing your request. Please try again.';\n  }\n} catch(e) {\n  responseText = 'Something went wrong. Your conversation is saved — try again.';\n}\n\nreturn [{\n  json: {\n    response: responseText || 'No response generated',\n    story_id: storyId\n  }\n}];"
       },
-      "id": "respond",
-      "name": "Respond",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [440, 0]
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
     }
   ],
   "connections": {
     "Chat Webhook": {
-      "main": [
-        [{ "node": "Claude Chat", "type": "main", "index": 0 }]
-      ]
+      "main": [[{ "node": "Prepare Prompt", "type": "main", "index": 0 }]]
     },
-    "Claude Chat": {
-      "main": [
-        [{ "node": "Respond", "type": "main", "index": 0 }]
-      ]
+    "Prepare Prompt": {
+      "main": [[{ "node": "Call Claude", "type": "main", "index": 0 }]]
+    },
+    "Call Claude": {
+      "main": [[{ "node": "Format Response", "type": "main", "index": 0 }]]
     }
   },
   "settings": {
     "executionOrder": "v1"
   },
-  "tags": [{ "name": "jaegeren" }, { "name": "v3" }]
+  "meta": {
+    "description": "V3 canvas chat: Webhook receives story content + user message + chat history, calls Claude Haiku for analyst-grade responses. Supports story modifications via <story_update> tags."
+  }
 }

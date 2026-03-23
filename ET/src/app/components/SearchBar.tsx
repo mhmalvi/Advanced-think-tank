@@ -89,10 +89,10 @@ export function SearchBar() {
   const showDropdown = focused && recentSearches.length > 0 && !query.trim();
 
   return (
-    <div className="bg-stone-50 dark:bg-[#0f1011] p-4 md:p-6 lg:p-8" ref={wrapperRef}>
-      <div className="max-w-[1800px] mx-auto relative">
+    <div className="border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-[#0a0a0b]" ref={wrapperRef}>
+      <div className="max-w-[960px] mx-auto px-6 md:px-10 lg:px-16 py-4 relative">
         <form onSubmit={handleSubmit} className="relative group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-stone-500 dark:text-[#5F5F5F] group-focus-within:text-[#ef4444] transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-stone-400 dark:text-stone-500 group-focus-within:text-stone-700 dark:group-focus-within:text-stone-300 transition-colors" />
 
           <input
             ref={inputRef}
@@ -103,9 +103,9 @@ export function SearchBar() {
               setNoResults(false);
             }}
             onFocus={() => setFocused(true)}
-            placeholder={t.search?.placeholder ?? "Ask anything — e.g., 'What happened with US tariffs today?'"}
+            placeholder={t.search?.placeholder ?? "Search intelligence briefs..."}
             disabled={searching}
-            className="w-full pl-14 pr-24 py-5 text-[15px] outline-none bg-white dark:bg-[#0a0a0b] text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-[#5F5F5F] border-2 border-stone-300 dark:border-stone-700 shadow-md dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)] rounded-lg focus:border-[#ef4444] dark:focus:border-[#ef4444] transition-all focus:shadow-[0_0_20px_rgba(239,68,68,0.15)] disabled:opacity-60"
+            className="w-full pl-11 pr-20 py-3 text-sm font-serif outline-none bg-stone-50 dark:bg-stone-900/50 text-stone-900 dark:text-white placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-200 dark:border-stone-700 rounded-md focus:border-[#E30613]/50 focus:ring-1 focus:ring-[#E30613]/20 dark:focus:border-[#E30613]/50 transition-all disabled:opacity-60"
           />
 
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -118,35 +118,28 @@ export function SearchBar() {
                 }}
                 className="p-1 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors"
               >
-                <X className="size-4" />
+                <X className="size-3.5" />
               </button>
             )}
-            <kbd className="hidden sm:flex items-center justify-center h-7 px-2 text-[10px] text-stone-500 dark:text-[#5F5F5F] font-bold bg-stone-100 dark:bg-[#111112] rounded border border-stone-200 dark:border-[#1C1C1D] font-mono">
+            <kbd className="hidden sm:flex items-center justify-center h-6 px-1.5 text-[10px] text-stone-400 dark:text-stone-500 font-mono bg-white dark:bg-stone-800 rounded border border-stone-200 dark:border-stone-700">
               {navigator.platform?.includes("Mac") ? "⌘K" : "Ctrl+K"}
             </kbd>
-            <button
-              type="submit"
-              disabled={!query.trim() || searching}
-              className="w-8 h-8 flex items-center justify-center bg-[#ef4444] hover:bg-[#dc2626] disabled:opacity-50 disabled:bg-stone-200 dark:disabled:bg-[#1C1C1D] text-white rounded transition-all"
-            >
-              {searching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
-            </button>
           </div>
         </form>
 
         {/* Recent searches dropdown */}
         {showDropdown && (
-          <div className="absolute z-50 top-full mt-1 w-full bg-white dark:bg-[#0a0a0b] border border-stone-200 dark:border-stone-700 rounded-lg shadow-lg overflow-hidden">
-            <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-stone-400">
-              {t.search?.recentSearches ?? "Recent searches"}
+          <div className="absolute z-50 left-6 right-6 md:left-10 md:right-10 lg:left-16 lg:right-16 top-full mt-1 bg-white dark:bg-[#0a0a0b] border border-stone-200 dark:border-stone-700 rounded-md shadow-lg overflow-hidden">
+            <div className="px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-stone-400">
+              {t.search?.recentSearches ?? "Recent"}
             </div>
             {recentSearches.map((text, i) => (
               <button
                 key={i}
                 onClick={() => handleRecentClick(text)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors text-left"
               >
-                <Clock className="size-3.5 text-stone-400 shrink-0" />
+                <Clock className="size-3 text-stone-400 shrink-0" />
                 <span className="truncate">{text}</span>
               </button>
             ))}
@@ -155,16 +148,16 @@ export function SearchBar() {
 
         {/* No results message */}
         {noResults && (
-          <div className="mt-2 text-xs text-stone-500 font-medium">
-            {t.search?.noResults ?? "No matching stories found. Try broadening your search."}
+          <div className="mt-2 text-xs text-stone-500">
+            {t.search?.noResults ?? "No matching briefs found. Try broadening your search."}
           </div>
         )}
 
         {/* Loading state */}
         {searching && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-[#ef4444] font-medium">
+          <div className="mt-2 flex items-center gap-2 text-xs text-stone-500">
             <Loader2 className="size-3 animate-spin" />
-            {t.search?.searching ?? "Scanning stories..."}
+            {t.search?.searching ?? "Scanning briefs..."}
           </div>
         )}
       </div>

@@ -49,7 +49,7 @@ export function AuthPage() {
       {/* Left panel - branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-stone-950 dark:bg-stone-900 text-white flex-col justify-between p-12">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Jaegeren</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Jægeren</h1>
           <p className="text-stone-400 mt-1">{t.nav.subtitle}</p>
         </div>
         <div className="space-y-6">
@@ -75,7 +75,7 @@ export function AuthPage() {
         <div className="w-full max-w-sm">
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <Sparkles className="size-5 text-[var(--brand)]" />
-            <h1 className="text-xl font-bold text-black dark:text-white">Jaegeren</h1>
+            <h1 className="text-xl font-bold text-black dark:text-white">Jægeren</h1>
           </div>
 
           <h2 className="text-2xl font-bold text-black dark:text-white mb-1">

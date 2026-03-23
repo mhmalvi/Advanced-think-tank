@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Newspaper, TrendingUp } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { useStoriesStore } from "@/stores/stories";
 import { useLocaleStore } from "@/stores/locale";
 import { useAuthStore } from "@/stores/auth";
@@ -12,102 +12,196 @@ import { SearchBar } from "@/app/components/SearchBar";
 import { InteractionButtons } from "@/app/components/InteractionButtons";
 import { useInteractionsStore } from "@/stores/interactions";
 
-function SourceCountBadge({ count }: { count: number }) {
+// ─── Dateline ───
+function Dateline() {
+  const now = new Date();
+  const formatted = now.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 dark:text-stone-400">
-      <Newspaper className="size-3" />
-      {count} {count === 1 ? "source" : "sources"}
-    </span>
+    <div className="flex items-center justify-between border-b border-stone-300 dark:border-stone-700 pb-3 mb-6">
+      <span className="text-xs tracking-widest uppercase text-stone-500 dark:text-stone-400 font-medium">
+        Intelligence Briefing
+      </span>
+      <span className="text-xs text-stone-400 dark:text-stone-500">{formatted}</span>
+    </div>
   );
 }
 
-// ─── Hero Story ───
+// ─── Hero Story (CNN-style attention grab + WSJ typography) ───
 function HeroStory({ story }: { story: Story }) {
   const locale = useLocaleStore((s) => s.locale);
 
   return (
-    <Link
-      to={`/canvas/${story.id}`}
-      className="block group rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-6 md:p-8 hover:border-stone-400 dark:hover:border-stone-600 transition-colors"
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <span className="px-2 py-0.5 rounded bg-red-500 text-white text-[10px] font-bold uppercase tracking-wider">
-          Featured
-        </span>
-        <SourceCountBadge count={story.source_count} />
-        <span className="text-[11px] text-stone-400 dark:text-stone-500">
-          {formatPublicationDate(story.created_at, locale)}
-        </span>
-      </div>
+    <Link to={`/canvas/${story.id}`} className="block group mb-10">
+      <div className="border-b-2 border-stone-900 dark:border-stone-100 pb-8">
+        {/* Hero image — CNN-style visual pull */}
+        {story.image_url && (
+          <div className="relative w-full aspect-[16/9] mb-5 rounded overflow-hidden bg-stone-100 dark:bg-stone-800">
+            <img
+              src={story.image_url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              loading="eager"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          </div>
+        )}
 
-      <h2 className="text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-3 group-hover:underline decoration-2 underline-offset-4">
-        {story.title}
-      </h2>
+        {/* Topic + source meta */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-[#E30613] dark:text-[#ff1a1a]">
+            {story.cluster_topic || "Analysis"}
+          </span>
+          <span className="text-[11px] text-stone-400 dark:text-stone-500">{story.source_count} sources</span>
+          <span className="text-[11px] text-stone-400 dark:text-stone-500">
+            {formatPublicationDate(story.created_at, locale)}
+          </span>
+        </div>
 
-      {story.synopsis && (
-        <p className="text-base text-stone-600 dark:text-stone-400 leading-relaxed mb-4 max-w-3xl line-clamp-3">
-          {story.synopsis}
-        </p>
-      )}
+        {/* Headline — serif, large, confident */}
+        <h1 className="font-serif text-3xl md:text-4xl lg:text-[2.75rem] font-bold text-stone-900 dark:text-white leading-[1.15] mb-4 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] transition-colors">
+          {story.title}
+        </h1>
 
-      <div className="flex items-center justify-between">
-        <StoryLabels labels={story.labels} max={6} />
-        <InteractionButtons storyId={story.id} />
+        {/* Synopsis — the "why it matters" line */}
+        {story.synopsis && (
+          <p className="font-serif text-lg md:text-xl text-stone-600 dark:text-stone-400 leading-relaxed max-w-3xl mb-5">
+            {story.synopsis}
+          </p>
+        )}
+
+        <div className="flex items-center justify-between">
+          <StoryLabels labels={story.labels} max={5} />
+          <div className="flex items-center gap-3">
+            <InteractionButtons storyId={story.id} />
+            <span className="text-xs text-stone-400 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] flex items-center gap-1 transition-colors">
+              Read full analysis <ArrowRight className="size-3" />
+            </span>
+          </div>
+        </div>
       </div>
     </Link>
   );
 }
 
-// ─── Story Card ───
-function StoryCard({ story }: { story: Story }) {
+// ─── Lead Story Card (WSJ-style — prominent, text-first with optional thumbnail) ───
+function LeadCard({ story }: { story: Story }) {
+  const locale = useLocaleStore((s) => s.locale);
+
+  return (
+    <Link to={`/canvas/${story.id}`} className="group block">
+      <div className="py-5 border-b border-stone-200 dark:border-stone-800">
+        <div className="flex gap-4">
+          {/* Text content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
+                {story.cluster_topic || "Analysis"}
+              </span>
+              <span className="text-[10px] text-stone-400 dark:text-stone-500">{story.source_count} sources</span>
+            </div>
+
+            <h3 className="font-serif text-lg md:text-xl font-semibold text-stone-900 dark:text-white leading-snug mb-2 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] transition-colors">
+              {story.title}
+            </h3>
+
+            {story.synopsis && (
+              <p className="text-sm text-stone-500 dark:text-stone-400 leading-relaxed line-clamp-2 mb-3">
+                {story.synopsis}
+              </p>
+            )}
+
+            <div className="flex items-center justify-between">
+              <StoryLabels labels={story.labels} max={3} />
+              <div className="flex items-center gap-2">
+                <InteractionButtons storyId={story.id} />
+                <span className="text-[11px] text-stone-400 dark:text-stone-500">
+                  {formatPublicationDate(story.created_at, locale)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Thumbnail — WSJ style: image supports the story, doesn't dominate */}
+          {story.image_url && (
+            <div className="hidden sm:block w-28 md:w-36 shrink-0">
+              <div className="aspect-[4/3] rounded overflow-hidden bg-stone-100 dark:bg-stone-800">
+                <img
+                  src={story.image_url}
+                  alt=""
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ─── Compact Story Row (for secondary stories — minimal, scannable) ───
+function CompactRow({ story }: { story: Story }) {
   const locale = useLocaleStore((s) => s.locale);
 
   return (
     <Link
       to={`/canvas/${story.id}`}
-      className="group flex flex-col rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-4 hover:border-stone-400 dark:hover:border-stone-600 transition-colors h-full"
+      className="group flex items-start gap-3 py-3 border-b border-stone-100 dark:border-stone-800/50 last:border-0"
     >
-      <div className="flex items-center gap-2 mb-2">
-        <SourceCountBadge count={story.source_count} />
-        <span className="text-[11px] text-stone-400 dark:text-stone-500">
-          {formatPublicationDate(story.created_at, locale)}
-        </span>
+      <ChevronRight className="size-3.5 text-stone-300 dark:text-stone-600 mt-1 shrink-0 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] transition-colors" />
+      <div className="flex-1 min-w-0">
+        <h4 className="font-serif text-[15px] font-semibold text-stone-800 dark:text-stone-200 leading-snug group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] transition-colors line-clamp-2">
+          {story.title}
+        </h4>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-[10px] uppercase tracking-wider text-stone-400 dark:text-stone-500 font-medium">
+            {story.cluster_topic || story.region}
+          </span>
+          <span className="text-[10px] text-stone-400 dark:text-stone-500">
+            {formatPublicationDate(story.created_at, locale)}
+          </span>
+        </div>
       </div>
-
-      <h3 className="text-sm font-semibold text-stone-900 dark:text-white mb-2 group-hover:underline decoration-1 underline-offset-2 line-clamp-2">
-        {story.title}
-      </h3>
-
-      {story.synopsis && (
-        <p className="text-xs text-stone-500 dark:text-stone-400 leading-relaxed mb-3 line-clamp-2 flex-1">
-          {story.synopsis}
-        </p>
-      )}
-
-      <div className="flex items-center justify-between mt-auto">
-        <StoryLabels labels={story.labels} max={4} />
-        <InteractionButtons storyId={story.id} />
-      </div>
+      <InteractionButtons storyId={story.id} />
     </Link>
+  );
+}
+
+// ─── Section Header (WSJ-style — clean rule + label) ───
+function SectionHeader({ title, count }: { title: string; count: number }) {
+  return (
+    <div className="flex items-baseline gap-3 border-b-2 border-stone-900 dark:border-stone-200 pb-1.5 mb-1">
+      <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-stone-900 dark:text-stone-100">{title}</h2>
+      <span className="text-[10px] text-stone-400 dark:text-stone-500">{count} stories</span>
+    </div>
   );
 }
 
 // ─── Region Section ───
 function RegionSection({ region, stories }: { region: string; stories: Story[] }) {
+  if (stories.length === 0) return null;
+
+  // First story gets lead treatment, rest are compact rows
+  const [lead, ...rest] = stories;
+
   return (
-    <section className="mb-8">
-      <div className="flex items-center gap-2 mb-4 border-b border-stone-200 dark:border-stone-800 pb-2">
-        <TrendingUp className="size-4 text-stone-400" />
-        <h2 className="text-sm font-bold text-stone-900 dark:text-stone-100 uppercase tracking-wider">
-          {region}
-        </h2>
-        <span className="text-xs text-stone-400">{stories.length}</span>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {stories.map((story) => (
-          <StoryCard key={story.id} story={story} />
-        ))}
-      </div>
+    <section className="mb-10">
+      <SectionHeader title={region} count={stories.length} />
+      <LeadCard story={lead} />
+      {rest.length > 0 && (
+        <div className="mt-1">
+          {rest.map((story) => (
+            <CompactRow key={story.id} story={story} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -115,15 +209,13 @@ function RegionSection({ region, stories }: { region: string; stories: Story[] }
 // ─── Loading Skeletons ───
 function HeroSkeleton() {
   return (
-    <div className="rounded-xl border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-6 md:p-8">
-      <div className="flex gap-2 mb-3">
-        <Skeleton className="h-5 w-16" />
-        <Skeleton className="h-5 w-20" />
-      </div>
-      <Skeleton className="h-9 w-3/4 mb-3" />
-      <Skeleton className="h-5 w-full mb-2" />
-      <Skeleton className="h-5 w-2/3 mb-4" />
-      <div className="flex gap-1">
+    <div className="border-b-2 border-stone-200 dark:border-stone-800 pb-8 mb-10">
+      <Skeleton className="h-3 w-20 mb-4" />
+      <Skeleton className="h-12 w-4/5 mb-3" />
+      <Skeleton className="h-12 w-3/5 mb-4" />
+      <Skeleton className="h-6 w-full mb-2" />
+      <Skeleton className="h-6 w-3/4 mb-5" />
+      <div className="flex gap-2">
         <Skeleton className="h-5 w-16" />
         <Skeleton className="h-5 w-20" />
         <Skeleton className="h-5 w-14" />
@@ -132,38 +224,39 @@ function HeroSkeleton() {
   );
 }
 
-function CardSkeleton() {
+function SectionSkeleton() {
   return (
-    <div className="rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50 p-4">
-      <div className="flex gap-2 mb-2">
-        <Skeleton className="h-4 w-16" />
-        <Skeleton className="h-4 w-20" />
+    <div className="mb-10">
+      <Skeleton className="h-4 w-24 mb-4" />
+      <div className="border-b border-stone-200 dark:border-stone-800 pb-5 mb-3">
+        <Skeleton className="h-3 w-16 mb-2" />
+        <Skeleton className="h-7 w-4/5 mb-2" />
+        <Skeleton className="h-5 w-full mb-1" />
+        <Skeleton className="h-5 w-2/3" />
       </div>
-      <Skeleton className="h-5 w-full mb-1" />
-      <Skeleton className="h-5 w-3/4 mb-2" />
-      <Skeleton className="h-4 w-full mb-1" />
-      <Skeleton className="h-4 w-2/3 mb-3" />
-      <div className="flex gap-1">
-        <Skeleton className="h-4 w-14" />
-        <Skeleton className="h-4 w-16" />
-      </div>
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex gap-3 py-3 border-b border-stone-100 dark:border-stone-800/50">
+          <Skeleton className="h-4 w-4 shrink-0" />
+          <div className="flex-1">
+            <Skeleton className="h-5 w-full mb-1" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
 
 // ─── Onboarding Banner ───
 function OnboardingBanner() {
-  const t = useLocaleStore((s) => s.t);
   return (
     <Link
       to="/settings/profile"
-      className="block rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-4 mb-6 hover:border-amber-300 dark:hover:border-amber-800 transition-colors"
+      className="block border-l-2 border-[#E30613] pl-4 py-3 mb-8 hover:bg-stone-50 dark:hover:bg-stone-900/30 transition-colors"
     >
-      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-        Complete your setup for personalized news
-      </p>
-      <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
-        Set your industry interests, geographic focus, and analysis lenses.
+      <p className="text-sm font-medium text-stone-800 dark:text-stone-200">Set up your intelligence profile</p>
+      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+        Configure industry interests, geographic focus, and analysis lenses for personalized briefings.
       </p>
     </Link>
   );
@@ -193,32 +286,33 @@ export function CommandCenter() {
   ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-stone-50 dark:bg-black">
+    <div className="flex-1 overflow-y-auto">
       <SearchBar />
 
-      <div className="p-4 md:p-6 lg:p-8">
-        <div className="max-w-[1400px] mx-auto">
+      <div className="px-6 md:px-10 lg:px-16 py-6 md:py-8">
+        <div className="max-w-[960px] mx-auto">
+          <Dateline />
+
           {needsOnboarding && <OnboardingBanner />}
 
           {/* Loading state */}
           {storiesLoading && stories.length === 0 && (
             <>
               <HeroSkeleton />
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <CardSkeleton key={i} />
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12">
+                <SectionSkeleton />
+                <SectionSkeleton />
               </div>
             </>
           )}
 
           {/* Error state */}
           {storiesError && stories.length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-sm text-stone-500 mb-3">{storiesError}</p>
+            <div className="text-center py-20">
+              <p className="font-serif text-lg text-stone-500 mb-4">{storiesError}</p>
               <button
                 onClick={fetchStories}
-                className="px-4 py-2 text-sm font-medium bg-stone-900 dark:bg-white text-white dark:text-black rounded hover:opacity-90 transition-opacity"
+                className="px-5 py-2.5 text-sm font-medium border border-stone-300 dark:border-stone-700 rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
               >
                 Retry
               </button>
@@ -227,18 +321,20 @@ export function CommandCenter() {
 
           {/* Empty state */}
           {!storiesLoading && !storiesError && stories.length === 0 && (
-            <div className="text-center py-16">
-              <Newspaper className="size-10 text-stone-300 dark:text-stone-700 mx-auto mb-3" />
-              <p className="text-sm text-stone-500">No stories yet. Check back soon.</p>
+            <div className="text-center py-20">
+              <p className="font-serif text-xl text-stone-400 dark:text-stone-500">No intelligence briefs available.</p>
+              <p className="text-sm text-stone-400 dark:text-stone-600 mt-2">
+                The synthesis pipeline runs every 4 hours. Check back soon.
+              </p>
             </div>
           )}
 
-          {/* Hero story */}
+          {/* Hero story — CNN-style grab */}
           {featuredStory && <HeroStory story={featuredStory} />}
 
-          {/* Regional sections */}
+          {/* Regional sections — WSJ-style structured grid */}
           {sortedRegions.length > 0 && (
-            <div className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12">
               {sortedRegions.map((region) => (
                 <RegionSection key={region} region={region} stories={regionGroups[region]} />
               ))}

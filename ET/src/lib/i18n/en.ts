@@ -86,7 +86,7 @@ export const en = {
     dailyScan: "Daily Scan",
     savedQueries: "Saved Queries",
     sources: "Sources",
-    subtitle: "Geo-economic intelligence",
+    subtitle: "Erhvervslivets Tænketank",
     queryHistory: "Query History",
     noSavedQueries: "No saved queries yet",
     viewAllSaved: "View all",
@@ -241,7 +241,8 @@ export const en = {
     connectGoogle: "Connect with Google",
     connectMicrosoft: "Connect with Microsoft",
     contentPrefs: "Content Preferences",
-    contentPrefsDesc: "Define which areas matter most to you. These tags will be used to tailor your experience in the system.",
+    contentPrefsDesc:
+      "Define which areas matter most to you. These tags will be used to tailor your experience in the system.",
     topics: "Topics",
     topicsDesc: "Add keywords like 'Macroeconomics', 'Security Policy' etc. Separate with enter.",
     areas: "Geographic Areas",
@@ -320,8 +321,8 @@ export const en = {
     globalCoverage: "Global coverage",
   },
   landing: {
-    heroTitle: "Jaegeren",
-    heroSubtitle: "Geo-economic intelligence",
+    heroTitle: "Jægeren",
+    heroSubtitle: "Erhvervslivets Tænketank",
     heroTagline:
       "Monitor geopolitical shifts, trade patterns, and economic policies — synthesized from 17+ sources using AI.",
     heroTaglineShort: "AI-synthesized intelligence from global sources. In seconds.",

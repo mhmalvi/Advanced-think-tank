@@ -1,0 +1,432 @@
+{
+  "id": "cwYCYeDfuOE8bloq",
+  "name": "Jaegeren Story Synthesis Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jaegeren-synthesize",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "On-Demand Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        100
+      ],
+      "webhookId": "jaegeren-synthesize"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://urppgmoexiuthsancgfj.supabase.co/rest/v1/articles?select=id,title,url,excerpt,content,source_name,region,language,topic_tags,published_at,image_url&order=published_at.desc&limit=300&published_at=gte.{{ new Date(Date.now() - 48*60*60*1000).toISOString() }}&content=not.is.null",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fetch-articles",
+      "name": "Fetch Recent Articles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cluster articles by topic into groups of 3+ for story synthesis\nconst allItems = $('Fetch Recent Articles').all();\nconst articles = allItems.map(item => item.json).filter(a => a.topic_tags && a.topic_tags.length > 0);\n\nif (articles.length < 3) {\n  return [{ json: { _skip: true, reason: 'Not enough articles for clustering' } }];\n}\n\n// Group by primary topic tag\nconst topicGroups = {};\nfor (const art of articles) {\n  const tags = art.topic_tags || ['General'];\n  const primary = tags[0];\n  if (!topicGroups[primary]) topicGroups[primary] = [];\n  topicGroups[primary].push(art);\n}\n\n// Build clusters: minimum 3 articles per cluster\nconst clusters = [];\nconst smallGroups = [];\n\nfor (const [topic, arts] of Object.entries(topicGroups)) {\n  if (arts.length >= 3) {\n    // If large group, sub-cluster by region\n    if (arts.length > 12) {\n      const byRegion = {};\n      for (const a of arts) {\n        const r = a.region || 'Global';\n        if (!byRegion[r]) byRegion[r] = [];\n        byRegion[r].push(a);\n      }\n      for (const [region, regionArts] of Object.entries(byRegion)) {\n        if (regionArts.length >= 3) {\n          clusters.push({ topic, region, articles: regionArts.slice(0, 10) });\n        } else {\n          smallGroups.push(...regionArts);\n        }\n      }\n    } else {\n      // Determine dominant region\n      const regionCounts = {};\n      for (const a of arts) {\n        const r = a.region || 'Global';\n        regionCounts[r] = (regionCounts[r] || 0) + 1;\n      }\n      const topRegion = Object.entries(regionCounts).sort((a,b) => b[1]-a[1])[0][0];\n      clusters.push({ topic, region: topRegion, articles: arts.slice(0, 10) });\n    }\n  } else {\n    smallGroups.push(...arts);\n  }\n}\n\n// Merge small groups into a 'Mixed' cluster if enough\nif (smallGroups.length >= 3) {\n  clusters.push({ topic: 'Mixed', region: 'Global', articles: smallGroups.slice(0, 10) });\n}\n\n// Sort by article count (most coverage = most newsworthy)\nclusters.sort((a, b) => b.articles.length - a.articles.length);\n\n// Take top 8 clusters to manage API costs\nconst topClusters = clusters.slice(0, 8);\n\nif (topClusters.length === 0) {\n  return [{ json: { _skip: true, reason: 'No viable clusters found' } }];\n}\n\n// Output one item per cluster\nreturn topClusters.map((cluster, idx) => ({\n  json: {\n    cluster_index: idx,\n    cluster_topic: cluster.topic,\n    cluster_region: cluster.region,\n    article_count: cluster.articles.length,\n    article_ids: cluster.articles.map(a => a.id),\n    is_top_cluster: idx === 0,\n    // Build the prompt context: titles + excerpts\n    image_url: (cluster.articles.find(a => a.image_url) || {}).image_url || null,\n    articles_context: cluster.articles.map(a =>\n      `[${a.source_name || 'Unknown'}] ${a.title}\\n${(a.excerpt || a.content || '').substring(0, 400)}`\n    ).join('\\n\\n---\\n\\n')\n  }\n}));"
+      },
+      "id": "cluster-articles",
+      "name": "Cluster Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-skip",
+      "name": "Filter Skip",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 4096, messages: [{ role: 'user', content: `You are an intelligence analyst for ET J\u00e6geren, a Danish geopolitical intelligence platform. Synthesize the following ${$json.article_count} news articles about \"${$json.cluster_topic}\" into a structured intelligence brief.\n\nARTICLES:\n${$json.articles_context}\n\nGenerate a JSON object with these exact fields:\n{\n  \"title\": \"Concise headline (max 100 chars, no quotes around it)\",\n  \"synopsis\": \"2-3 sentence executive summary for busy analysts\",\n  \"synthetic_content\": \"Rich markdown intelligence brief (600-1200 words). Use ## headings for sections. Include [BACKGROUND] block for context. Use **bold** for key entities/numbers. End with a ## Outlook section on implications.\",\n  \"labels\": [{\"type\": \"source\", \"text\": \"topic tag\", \"reason\": \"why this label\"}, {\"type\": \"ai\", \"text\": \"analysis tag\", \"reason\": \"analytical insight\"}],\n  \"timeline_entries\": [{\"timestamp\": \"ISO date\", \"summary\": \"what happened\", \"anchor_id\": \"heading-slug\"}],\n  \"confidence_score\": 0.85,\n  \"significance_rating\": 8\n}\n\nRules:\n- confidence_score: 0.00-1.00 based on source agreement and coverage depth\n- significance_rating: 1-10 for how important this story is globally\n- timeline_entries: 2-4 entries matching ## headings in synthetic_content (anchor_id = lowercase-hyphenated heading)\n- labels: 2-4 labels mixing \"source\" (factual tags) and \"ai\" (analytical insight tags)\n- synthetic_content must use proper markdown. Sections should have ## headings.\n- Write in English. If articles are in Danish, translate key insights.\n- Be analytical, not just descriptive. What does this mean? Who benefits? What are the risks?\n\nRespond with ONLY the JSON object, no markdown fences.` }] }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          },
+          "timeout": 60000
+        }
+      },
+      "id": "call-claude",
+      "name": "Call Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zApvfwLIqjpSWD9f",
+          "name": "Anthropic API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude response and build story records for Supabase\nconst items = $input.all();\nconst clusterItems = $('Filter Skip').all();\nconst stories = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const cluster = clusterItems[i]?.json || {};\n  \n  try {\n    // Extract Claude's response text\n    let responseText = '';\n    if (item.json.content && Array.isArray(item.json.content)) {\n      responseText = item.json.content.map(c => c.text || '').join('');\n    } else if (typeof item.json === 'string') {\n      responseText = item.json;\n    } else if (item.json.error) {\n      continue; // Skip failed API calls\n    }\n    \n    // Clean up response: remove markdown fences if present\n    responseText = responseText.replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '').replace(/```\\s*$/i, '').trim();\n    \n    // Find the JSON object in the response (Claude sometimes adds text before/after)\n    const jsonStart = responseText.indexOf('{');\n    const jsonEnd = responseText.lastIndexOf('}');\n    if (jsonStart === -1 || jsonEnd === -1) continue;\n    responseText = responseText.substring(jsonStart, jsonEnd + 1);\n    \n    const story = JSON.parse(responseText);\n    if (!story.title) continue;\n    \n    // Generate content hash for caching\n    let hash = 0;\n    const hashStr = story.title + story.synthetic_content;\n    for (let j = 0; j < hashStr.length; j++) {\n      hash = ((hash << 5) - hash + hashStr.charCodeAt(j)) | 0;\n    }\n    const contentHash = Math.abs(hash).toString(16);\n    \n    stories.push({\n      json: {\n        title: story.title || 'Untitled Story',\n        synopsis: story.synopsis || '',\n        synthetic_content: story.synthetic_content || '',\n        source_count: cluster.article_count || 0,\n        source_article_ids: cluster.article_ids || [],\n        labels: story.labels || [],\n        cluster_topic: cluster.cluster_topic || 'General',\n        region: cluster.cluster_region || 'Global',\n        is_featured: cluster.is_top_cluster && (story.significance_rating || 0) >= 7,\n        content_hash: contentHash,\n        timeline_entries: story.timeline_entries || [],\n        confidence_score: Math.min(1, Math.max(0, story.confidence_score || 0.5)),\n        image_url: cluster.image_url || null\n      }\n    });\n  } catch(e) {\n    // Skip malformed responses\n  }\n}\n\nif (stories.length === 0) {\n  return [{ json: { _skip: true, reason: 'No stories could be parsed' } }];\n}\n\nreturn stories;"
+      },
+      "id": "parse-stories",
+      "name": "Parse Stories",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-parsed",
+      "name": "Filter Parsed",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://urppgmoexiuthsancgfj.supabase.co/rest/v1/stories?created_at=lt.{{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cleanup-old",
+      "name": "Cleanup Old Stories",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        -150
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://urppgmoexiuthsancgfj.supabase.co/rest/v1/stories?is_featured=eq.true",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"is_featured\": false}",
+        "options": {}
+      },
+      "id": "unfeature-old",
+      "name": "Unfeature Old Stories",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://urppgmoexiuthsancgfj.supabase.co/rest/v1/stories",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $json.title, synopsis: $json.synopsis, synthetic_content: $json.synthetic_content, source_count: $json.source_count, source_article_ids: $json.source_article_ids, labels: $json.labels, cluster_topic: $json.cluster_topic, region: $json.region, is_featured: $json.is_featured, content_hash: $json.content_hash, timeline_entries: $json.timeline_entries, confidence_score: $json.confidence_score, image_url: $json.image_url || null }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          }
+        }
+      },
+      "id": "insert-stories",
+      "name": "Insert Stories",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Every 4 Hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch Recent Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On-Demand Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Recent Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Recent Articles": {
+      "main": [
+        [
+          {
+            "node": "Cluster Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cluster Articles": {
+      "main": [
+        [
+          {
+            "node": "Filter Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Skip": {
+      "main": [
+        [
+          {
+            "node": "Call Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Claude": {
+      "main": [
+        [
+          {
+            "node": "Parse Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Stories": {
+      "main": [
+        [
+          {
+            "node": "Filter Parsed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Parsed": {
+      "main": [
+        [
+          {
+            "node": "Cleanup Old Stories",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Unfeature Old Stories",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup Old Stories": {
+      "main": []
+    },
+    "Unfeature Old Stories": {
+      "main": []
+    },
+    "Insert Stories": {
+      "main": []
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "description": "V3 story synthesis: Every 4 hours (or on-demand), fetches recent articles, clusters by topic, uses Claude to generate intelligence briefs, writes to stories table. Cleans up stories older than 7 days."
+  }
+}

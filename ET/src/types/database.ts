@@ -55,6 +55,7 @@ export type Database = {
           topic_tags: string[];
           is_processed: boolean;
           source_name: string | null;
+          image_url: string | null;
         };
         Insert: Omit<Database["public"]["Tables"]["articles"]["Row"], "id" | "ingested_at">;
         Update: Partial<Database["public"]["Tables"]["articles"]["Insert"]>;
@@ -145,6 +146,7 @@ export type Database = {
           content_hash: string | null;
           timeline_entries: TimelineEntry[];
           confidence_score: number;
+          image_url: string | null;
           created_at: string;
           updated_at: string;
         };

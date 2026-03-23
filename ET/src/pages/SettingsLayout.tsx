@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { ArrowLeft, User, Building2, Bookmark, Clock } from "lucide-react";
+import { ArrowLeft, User, Brain, Building2 } from "lucide-react";
 import { useLocaleStore } from "@/stores/locale";
 
 export function SettingsLayout() {
@@ -8,9 +8,8 @@ export function SettingsLayout() {
 
   const tabs = [
     { key: "profile", path: "/settings/profile", icon: User, label: t.settings.profile },
+    { key: "ai-profile", path: "/settings/ai-profile", icon: Brain, label: "AI Profile" },
     { key: "company", path: "/settings/company", icon: Building2, label: t.settings.organization },
-    { key: "bookmarks", path: "/settings/bookmarks", icon: Bookmark, label: "Bookmarks" },
-    { key: "history", path: "/settings/history", icon: Clock, label: "History" },
   ];
 
   return (
@@ -33,8 +32,8 @@ export function SettingsLayout() {
                 to={tab.path}
                 className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   isActive
-                    ? "border-stone-900 dark:border-white text-stone-900 dark:text-white"
-                    : "border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300"
+                    ? "border-[#E30613] text-[#E30613] dark:text-[#ff4444]"
+                    : "border-transparent text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 hover:border-stone-300"
                 }`}
               >
                 <tab.icon className="size-4" />

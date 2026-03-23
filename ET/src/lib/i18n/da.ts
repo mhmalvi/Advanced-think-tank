@@ -243,7 +243,8 @@ export const da: Translations = {
     connectGoogle: "Forbind med Google",
     connectMicrosoft: "Forbind med Microsoft",
     contentPrefs: "Indholdspraeferencer",
-    contentPrefsDesc: "Definer hvilke omraader der er vigtigst for dig. Disse tags vil blive brugt til at skraeddersy din oplevelse i systemet.",
+    contentPrefsDesc:
+      "Definer hvilke omraader der er vigtigst for dig. Disse tags vil blive brugt til at skraeddersy din oplevelse i systemet.",
     topics: "Emner",
     topicsDesc: "Tilfoej noegleord som 'Makrookonomi', 'Sikkerhedspolitik' osv. Adskil med enter.",
     areas: "Geografiske omraader",
@@ -322,8 +323,8 @@ export const da: Translations = {
     globalCoverage: "Global daekning",
   },
   landing: {
-    heroTitle: "Jaegeren",
-    heroSubtitle: "Geo-okonomisk efterretning",
+    heroTitle: "Jægeren",
+    heroSubtitle: "Erhvervslivets Tænketank",
     heroTagline:
       "Overvaag geopolitiske skift, handelsmonstre og okonomiske politikker - syntetiseret fra 17+ kilder med AI.",
     heroTaglineShort: "AI-syntetiseret efterretning fra globale kilder. Paa sekunder.",
