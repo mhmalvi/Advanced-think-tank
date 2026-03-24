@@ -1,6 +1,7 @@
 name: CI / Deploy
 # Production CI pipeline — lint, typecheck, test, format, e2e, deploy
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
