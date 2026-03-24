@@ -1,5 +1,5 @@
 name: CI / Deploy
-
+# Production CI pipeline — lint, typecheck, test, format, e2e, deploy
 on:
   push:
     branches: [main]
