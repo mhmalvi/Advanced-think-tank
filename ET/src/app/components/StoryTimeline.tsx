@@ -80,9 +80,7 @@ export function StoryTimeline({ entries, locale = "en" }: StoryTimelineProps) {
                 </span>
                 <span
                   className={`text-xs leading-snug ${
-                    i < 2
-                      ? "text-stone-800 dark:text-stone-200 font-medium"
-                      : "text-stone-500 dark:text-stone-400"
+                    i < 2 ? "text-stone-800 dark:text-stone-200 font-medium" : "text-stone-500 dark:text-stone-400"
                   } group-hover:text-stone-900 dark:group-hover:text-white transition-colors`}
                 >
                   {entry.summary}

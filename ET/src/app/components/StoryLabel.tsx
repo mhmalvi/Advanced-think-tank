@@ -1,10 +1,5 @@
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/app/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/app/components/ui/tooltip";
 import type { StoryLabel as StoryLabelType } from "@/types/database";
 
 const labelColors: Record<StoryLabelType["type"], string> = {
@@ -54,14 +49,12 @@ export function StoryLabels({
   userPreferences?: string[];
 }) {
   // Compute personal labels at render time
-  let allLabels = [...labels];
+  const allLabels = [...labels];
   if (userPreferences && userPreferences.length > 0) {
     const existingTexts = new Set(labels.map((l) => l.text.toLowerCase()));
     for (const pref of userPreferences) {
       const matchesLabel = labels.some(
-        (l) =>
-          (l.type === "ai" || l.type === "editorial") &&
-          l.text.toLowerCase().includes(pref.toLowerCase()),
+        (l) => (l.type === "ai" || l.type === "editorial") && l.text.toLowerCase().includes(pref.toLowerCase()),
       );
       if (matchesLabel && !existingTexts.has(pref.toLowerCase())) {
         allLabels.push({

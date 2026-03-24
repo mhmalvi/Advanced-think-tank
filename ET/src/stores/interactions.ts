@@ -73,10 +73,12 @@ export const useInteractionsStore = create<InteractionsState>((set, get) => ({
           .eq("story_id", storyId)
           .eq("interaction_type", "dislike");
       }
-      await supabase.from("user_interactions").upsert(
-        { user_id: userId, story_id: storyId, interaction_type: "like" },
-        { onConflict: "user_id,story_id,interaction_type" },
-      );
+      await supabase
+        .from("user_interactions")
+        .upsert(
+          { user_id: userId, story_id: storyId, interaction_type: "like" },
+          { onConflict: "user_id,story_id,interaction_type" },
+        );
     }
   },
 
@@ -107,10 +109,12 @@ export const useInteractionsStore = create<InteractionsState>((set, get) => ({
           .eq("story_id", storyId)
           .eq("interaction_type", "like");
       }
-      await supabase.from("user_interactions").upsert(
-        { user_id: userId, story_id: storyId, interaction_type: "dislike" },
-        { onConflict: "user_id,story_id,interaction_type" },
-      );
+      await supabase
+        .from("user_interactions")
+        .upsert(
+          { user_id: userId, story_id: storyId, interaction_type: "dislike" },
+          { onConflict: "user_id,story_id,interaction_type" },
+        );
     }
   },
 
@@ -132,10 +136,12 @@ export const useInteractionsStore = create<InteractionsState>((set, get) => ({
     } else {
       bookmarks.add(storyId);
       set({ bookmarks });
-      await supabase.from("user_interactions").upsert(
-        { user_id: userId, story_id: storyId, interaction_type: "bookmark" },
-        { onConflict: "user_id,story_id,interaction_type" },
-      );
+      await supabase
+        .from("user_interactions")
+        .upsert(
+          { user_id: userId, story_id: storyId, interaction_type: "bookmark" },
+          { onConflict: "user_id,story_id,interaction_type" },
+        );
     }
   },
 

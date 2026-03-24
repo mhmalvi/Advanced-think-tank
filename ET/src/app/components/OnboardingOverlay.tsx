@@ -96,10 +96,7 @@ export function OnboardingOverlay() {
   };
 
   const canProceed =
-    step === 1 ? industries.size > 0 :
-    step === 2 ? geographies.size > 0 :
-    step === 3 ? lenses.size > 0 :
-    true;
+    step === 1 ? industries.size > 0 : step === 2 ? geographies.size > 0 : step === 3 ? lenses.size > 0 : true;
 
   const handleSkip = () => {
     // Dismiss overlay without saving — needsOnboarding stays true
@@ -114,9 +111,12 @@ export function OnboardingOverlay() {
     try {
       // Build preference rows
       const prefs: { user_id: string; preference_type: string; preference_value: string; source: string }[] = [];
-      for (const v of industries) prefs.push({ user_id: user.id, preference_type: "industry", preference_value: v, source: "onboarding" });
-      for (const v of geographies) prefs.push({ user_id: user.id, preference_type: "geography", preference_value: v, source: "onboarding" });
-      for (const v of lenses) prefs.push({ user_id: user.id, preference_type: "lens", preference_value: v, source: "onboarding" });
+      for (const v of industries)
+        prefs.push({ user_id: user.id, preference_type: "industry", preference_value: v, source: "onboarding" });
+      for (const v of geographies)
+        prefs.push({ user_id: user.id, preference_type: "geography", preference_value: v, source: "onboarding" });
+      for (const v of lenses)
+        prefs.push({ user_id: user.id, preference_type: "lens", preference_value: v, source: "onboarding" });
 
       // Save preferences
       if (prefs.length > 0) {
@@ -200,12 +200,8 @@ export function OnboardingOverlay() {
           </div>
 
           {/* Title */}
-          <h2 className="text-xl font-bold text-stone-900 dark:text-white mb-1">
-            {stepTitles[step]}
-          </h2>
-          <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">
-            {stepDescriptions[step]}
-          </p>
+          <h2 className="text-xl font-bold text-stone-900 dark:text-white mb-1">{stepTitles[step]}</h2>
+          <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">{stepDescriptions[step]}</p>
 
           {/* Step content */}
           {step === 1 && (
@@ -222,13 +218,7 @@ export function OnboardingOverlay() {
               onToggle={(v) => toggle(geographies, setGeographies, v)}
             />
           )}
-          {step === 3 && (
-            <TagGrid
-              options={LENSES}
-              selected={lenses}
-              onToggle={(v) => toggle(lenses, setLenses, v)}
-            />
-          )}
+          {step === 3 && <TagGrid options={LENSES} selected={lenses} onToggle={(v) => toggle(lenses, setLenses, v)} />}
           {step === 4 && <ThemeSelector />}
 
           {/* Navigation */}

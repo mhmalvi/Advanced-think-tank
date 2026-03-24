@@ -24,7 +24,6 @@ describe("settings store", () => {
     it("has citation brackets enabled", () => {
       expect(useSettingsStore.getState().showCitationBrackets).toBe(true);
     });
-
   });
 
   describe("addTopic / removeTopic", () => {
@@ -100,5 +99,4 @@ describe("settings store", () => {
       expect(useSettingsStore.getState().showCitationBrackets).toBe(true);
     });
   });
-
 });

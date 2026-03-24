@@ -25,9 +25,7 @@ export function AnalystPage() {
   async function joinWaitlist() {
     if (!user?.id || onWaitlist) return;
     setLoading(true);
-    const { error } = await supabase
-      .from("analyst_waitlist")
-      .insert({ user_id: user.id });
+    const { error } = await supabase.from("analyst_waitlist").insert({ user_id: user.id });
 
     if (!error) {
       setOnWaitlist(true);
@@ -55,8 +53,8 @@ export function AnalystPage() {
         </div>
 
         <p className="text-stone-600 dark:text-stone-400 mb-6 leading-relaxed">
-          Analyst Mode will let you manually edit stories, add your own sources, annotate text,
-          and create custom briefings for your team.
+          Analyst Mode will let you manually edit stories, add your own sources, annotate text, and create custom
+          briefings for your team.
         </p>
 
         <ul className="space-y-3 mb-8">

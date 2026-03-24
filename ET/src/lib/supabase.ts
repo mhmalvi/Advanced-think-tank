@@ -10,11 +10,9 @@ function getClient(): SupabaseClient<Database> {
   if (!_supabase) {
     if (!supabaseUrl || !supabaseAnonKey) {
       // Return a dummy client that rejects all calls — dev mode should bypass Supabase
-      _supabase = createClient<Database>(
-        "http://localhost:0",
-        "dummy-key-for-dev-mode",
-        { auth: { autoRefreshToken: false, persistSession: false } },
-      );
+      _supabase = createClient<Database>("http://localhost:0", "dummy-key-for-dev-mode", {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
       return _supabase;
     }
     _supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {

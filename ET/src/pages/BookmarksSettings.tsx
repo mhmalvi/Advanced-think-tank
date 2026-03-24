@@ -17,11 +17,6 @@ export function BookmarksSettings() {
   const locale = useLocaleStore((s) => s.locale);
   const toggleBookmark = useInteractionsStore((s) => s.toggleBookmark);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    loadBookmarks();
-  }, [user?.id]);
-
   async function loadBookmarks() {
     setLoading(true);
     const { data } = await supabase
@@ -42,6 +37,11 @@ export function BookmarksSettings() {
     setLoading(false);
   }
 
+  useEffect(() => {
+    if (!user?.id) return;
+    loadBookmarks();
+  }, [user?.id]);
+
   async function handleUnbookmark(storyId: string) {
     await toggleBookmark(storyId);
     setStories((prev) => prev.filter((s) => s.id !== storyId));
@@ -55,7 +55,9 @@ export function BookmarksSettings() {
     return (
       <div className="p-6 text-center">
         <Bookmark className="size-10 text-stone-300 dark:text-stone-700 mx-auto mb-3" />
-        <p className="text-sm text-stone-500">No bookmarks yet. Bookmark stories from the dashboard or canvas to find them here.</p>
+        <p className="text-sm text-stone-500">
+          No bookmarks yet. Bookmark stories from the dashboard or canvas to find them here.
+        </p>
       </div>
     );
   }

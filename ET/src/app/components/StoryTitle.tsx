@@ -14,10 +14,7 @@ export function StoryTitle({ title, storyId, sourceUrl, className }: StoryTitleP
     <span className="inline-flex items-start gap-1.5">
       <Link
         to={`/canvas/${storyId}`}
-        className={cn(
-          "hover:underline decoration-1 underline-offset-2 transition-colors",
-          className,
-        )}
+        className={cn("hover:underline decoration-1 underline-offset-2 transition-colors", className)}
       >
         {title}
       </Link>

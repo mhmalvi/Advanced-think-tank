@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { ExternalLink, ChevronUp, ChevronDown, Search, Database } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatPublicationDate } from "@/lib/utils";
@@ -20,33 +20,50 @@ type ArticleRow = {
 type SortColumn = "source_name" | "title" | "published_at" | "region";
 type SortDir = "asc" | "desc";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
 
 export function SourcesPage() {
   const [articles, setArticles] = useState<ArticleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<number>(50);
   const [sortCol, setSortCol] = useState<SortColumn>("published_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
   const locale = useLocaleStore((s) => s.locale);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Debounce search input by 400ms
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedSearch(value);
+      setPage(0);
+    }, 400);
+  }, []);
 
   useEffect(() => {
-    loadArticles();
-  }, [page, sortCol, sortDir, sourceFilter, regionFilter, searchQuery]);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   async function loadArticles() {
     setLoading(true);
 
     let query = supabase
       .from("articles")
-      .select("id, title, url, author, published_at, region, topic_tags, is_processed, embedding_id, source_name", { count: "exact" });
+      .select("id, title, url, author, published_at, region, topic_tags, is_processed, embedding_id, source_name", {
+        count: "exact",
+      });
 
-    if (searchQuery.trim()) {
-      const pattern = `%${searchQuery.trim()}%`;
+    if (debouncedSearch.trim()) {
+      const pattern = `%${debouncedSearch.trim()}%`;
       query = query.or(`title.ilike.${pattern},source_name.ilike.${pattern}`);
     }
     if (sourceFilter) {
@@ -56,15 +73,17 @@ export function SourcesPage() {
       query = query.eq("region", regionFilter);
     }
 
-    query = query
-      .order(sortCol, { ascending: sortDir === "asc" })
-      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    query = query.order(sortCol, { ascending: sortDir === "asc" }).range(page * pageSize, (page + 1) * pageSize - 1);
 
     const { data, count } = await query;
     setArticles((data ?? []) as ArticleRow[]);
     setTotalCount(count ?? 0);
     setLoading(false);
   }
+
+  useEffect(() => {
+    loadArticles();
+  }, [page, pageSize, sortCol, sortDir, sourceFilter, regionFilter, debouncedSearch]);
 
   // Collect distinct sources and regions for filter dropdowns
   const [distinctSources, setDistinctSources] = useState<string[]>([]);
@@ -99,10 +118,10 @@ export function SourcesPage() {
     setPage(0);
   }
 
-  const SortIcon = ({ col }: { col: SortColumn }) => {
+  function sortIcon(col: SortColumn) {
     if (sortCol !== col) return null;
     return sortDir === "asc" ? <ChevronUp className="size-3 inline" /> : <ChevronDown className="size-3 inline" />;
-  };
+  }
 
   function statusDot(article: ArticleRow) {
     if (article.is_processed && article.embedding_id) return "bg-green-500";
@@ -110,8 +129,8 @@ export function SourcesPage() {
     return "bg-red-500";
   }
 
-  const startIdx = page * PAGE_SIZE + 1;
-  const endIdx = Math.min((page + 1) * PAGE_SIZE, totalCount);
+  const startIdx = page * pageSize + 1;
+  const endIdx = Math.min((page + 1) * pageSize, totalCount);
 
   return (
     <div className="flex-1 overflow-y-auto bg-stone-50 dark:bg-black">
@@ -130,26 +149,40 @@ export function SourcesPage() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search articles..."
                 className="w-full pl-9 pr-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-md bg-white dark:bg-stone-900 text-stone-900 dark:text-white placeholder:text-stone-400 outline-none focus:border-[#ef4444]"
               />
             </div>
             <select
               value={sourceFilter}
-              onChange={(e) => { setSourceFilter(e.target.value); setPage(0); }}
+              onChange={(e) => {
+                setSourceFilter(e.target.value);
+                setPage(0);
+              }}
               className="px-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-md bg-white dark:bg-stone-900 text-stone-900 dark:text-white"
             >
               <option value="">All sources</option>
-              {distinctSources.map((s) => <option key={s} value={s}>{s}</option>)}
+              {distinctSources.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
             </select>
             <select
               value={regionFilter}
-              onChange={(e) => { setRegionFilter(e.target.value); setPage(0); }}
+              onChange={(e) => {
+                setRegionFilter(e.target.value);
+                setPage(0);
+              }}
               className="px-3 py-2 text-sm border border-stone-200 dark:border-stone-700 rounded-md bg-white dark:bg-stone-900 text-stone-900 dark:text-white"
             >
               <option value="">All regions</option>
-              {distinctRegions.map((r) => <option key={r} value={r}>{r}</option>)}
+              {distinctRegions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -159,18 +192,30 @@ export function SourcesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900">
-                    <th className="px-4 py-3 text-left font-medium text-stone-500 cursor-pointer select-none" onClick={() => handleSort("source_name")}>
-                      Source <SortIcon col="source_name" />
+                    <th
+                      className="px-4 py-3 text-left font-medium text-stone-500 cursor-pointer select-none"
+                      onClick={() => handleSort("source_name")}
+                    >
+                      Source {sortIcon("source_name")}
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-stone-500 cursor-pointer select-none" onClick={() => handleSort("title")}>
-                      Title <SortIcon col="title" />
+                    <th
+                      className="px-4 py-3 text-left font-medium text-stone-500 cursor-pointer select-none"
+                      onClick={() => handleSort("title")}
+                    >
+                      Title {sortIcon("title")}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-stone-500">Author</th>
-                    <th className="px-4 py-3 text-left font-medium text-stone-500 cursor-pointer select-none" onClick={() => handleSort("published_at")}>
-                      Published <SortIcon col="published_at" />
+                    <th
+                      className="px-4 py-3 text-left font-medium text-stone-500 cursor-pointer select-none"
+                      onClick={() => handleSort("published_at")}
+                    >
+                      Published {sortIcon("published_at")}
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-stone-500 cursor-pointer select-none" onClick={() => handleSort("region")}>
-                      Region <SortIcon col="region" />
+                    <th
+                      className="px-4 py-3 text-left font-medium text-stone-500 cursor-pointer select-none"
+                      onClick={() => handleSort("region")}
+                    >
+                      Region {sortIcon("region")}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-stone-500">Topics</th>
                     <th className="px-4 py-3 text-center font-medium text-stone-500">Status</th>
@@ -178,13 +223,26 @@ export function SourcesPage() {
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center text-stone-400">Loading...</td></tr>
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-stone-400">
+                        Loading...
+                      </td>
+                    </tr>
                   ) : articles.length === 0 ? (
-                    <tr><td colSpan={7} className="px-4 py-8 text-center text-stone-400">No articles found</td></tr>
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-stone-400">
+                        No articles found
+                      </td>
+                    </tr>
                   ) : (
                     articles.map((article) => (
-                      <tr key={article.id} className="border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/30">
-                        <td className="px-4 py-2.5 text-stone-600 dark:text-stone-400 whitespace-nowrap">{article.source_name ?? "—"}</td>
+                      <tr
+                        key={article.id}
+                        className="border-b border-stone-100 dark:border-stone-800/50 hover:bg-stone-50 dark:hover:bg-stone-800/30"
+                      >
+                        <td className="px-4 py-2.5 text-stone-600 dark:text-stone-400 whitespace-nowrap">
+                          {article.source_name ?? "—"}
+                        </td>
                         <td className="px-4 py-2.5 max-w-xs">
                           <a
                             href={article.url}
@@ -197,7 +255,9 @@ export function SourcesPage() {
                           </a>
                         </td>
                         <td className="px-4 py-2.5 text-stone-500 whitespace-nowrap">{article.author ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-stone-500 whitespace-nowrap">{formatPublicationDate(article.published_at, locale)}</td>
+                        <td className="px-4 py-2.5 text-stone-500 whitespace-nowrap">
+                          {formatPublicationDate(article.published_at, locale)}
+                        </td>
                         <td className="px-4 py-2.5">
                           {article.region && (
                             <span className="px-2 py-0.5 text-[10px] font-medium rounded bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300">
@@ -208,7 +268,10 @@ export function SourcesPage() {
                         <td className="px-4 py-2.5">
                           <div className="flex flex-wrap gap-1">
                             {(article.topic_tags ?? []).slice(0, 3).map((tag) => (
-                              <span key={tag} className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400">
+                              <span
+                                key={tag}
+                                className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400"
+                              >
                                 {tag}
                               </span>
                             ))}
@@ -229,9 +292,25 @@ export function SourcesPage() {
 
             {/* Pagination */}
             <div className="flex items-center justify-between px-4 py-3 border-t border-stone-200 dark:border-stone-800">
-              <span className="text-xs text-stone-500">
-                Showing {startIdx}–{endIdx} of {totalCount.toLocaleString()} articles
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-stone-500">
+                  Showing {startIdx}–{endIdx} of {totalCount.toLocaleString()} articles
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setPage(0);
+                  }}
+                  className="px-2 py-1 text-xs border border-stone-200 dark:border-stone-700 rounded bg-white dark:bg-stone-900 text-stone-700 dark:text-stone-300"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size} per page
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}

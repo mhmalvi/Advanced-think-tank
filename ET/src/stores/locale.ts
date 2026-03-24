@@ -16,17 +16,17 @@ type LocaleState = {
 export const useLocaleStore = create<LocaleState>()(
   persist(
     (set) => ({
-      locale: "da",
+      locale: "en",
       setLocale: (locale: Locale) => {
         document.documentElement.lang = locale;
         set({ locale, t: translations[locale] });
       },
-      t: translations["da"],
+      t: translations["en"],
     }),
     {
       name: "jaegeren-locale",
       version: 3,
-      migrate: () => ({ locale: "da" as Locale }),
+      migrate: () => ({ locale: "en" as Locale }),
       partialize: (state) => ({ locale: state.locale }),
       onRehydrateStorage: () => (state) => {
         if (state) {

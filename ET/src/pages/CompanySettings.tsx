@@ -1,5 +1,5 @@
-import { Users, Key } from 'lucide-react';
-import { useLocaleStore } from '@/stores/locale';
+import { Users, Key } from "lucide-react";
+import { useLocaleStore } from "@/stores/locale";
 
 function PlaceholderSection({
   icon: Icon,

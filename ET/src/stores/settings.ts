@@ -28,7 +28,6 @@ type SettingsState = {
   setTextSize: (size: "sm" | "md" | "lg") => void;
   showCitationBrackets: boolean;
   toggleCitationBrackets: () => void;
-
 };
 
 function generateId(): string {
@@ -87,7 +86,6 @@ export const useSettingsStore = create<SettingsState>()(
       toggleCitationBrackets: () => {
         set((state) => ({ showCitationBrackets: !state.showCitationBrackets }));
       },
-
     }),
     {
       name: "jaegeren-settings",

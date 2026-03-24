@@ -17,10 +17,7 @@
       "name": "Every 4 Hours",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [
-        0,
-        -100
-      ]
+      "position": [0, -100]
     },
     {
       "parameters": {
@@ -33,10 +30,7 @@
       "name": "On-Demand Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        0,
-        100
-      ],
+      "position": [0, 100],
       "webhookId": "jaegeren-synthesize"
     },
     {
@@ -59,10 +53,7 @@
       "name": "Fetch Recent Articles",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        220,
-        0
-      ]
+      "position": [220, 0]
     },
     {
       "parameters": {
@@ -72,10 +63,7 @@
       "name": "Cluster Articles",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        440,
-        0
-      ]
+      "position": [440, 0]
     },
     {
       "parameters": {
@@ -102,10 +90,7 @@
       "name": "Filter Skip",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
-      "position": [
-        660,
-        0
-      ]
+      "position": [660, 0]
     },
     {
       "parameters": {
@@ -143,10 +128,7 @@
       "name": "Call Claude",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        880,
-        0
-      ],
+      "position": [880, 0],
       "credentials": {
         "httpHeaderAuth": {
           "id": "zApvfwLIqjpSWD9f",
@@ -163,10 +145,7 @@
       "name": "Parse Stories",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        1100,
-        0
-      ]
+      "position": [1100, 0]
     },
     {
       "parameters": {
@@ -193,10 +172,7 @@
       "name": "Filter Parsed",
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
-      "position": [
-        1320,
-        0
-      ]
+      "position": [1320, 0]
     },
     {
       "parameters": {
@@ -222,10 +198,7 @@
       "name": "Cleanup Old Stories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1540,
-        -150
-      ],
+      "position": [1540, -150],
       "onError": "continueRegularOutput"
     },
     {
@@ -259,10 +232,7 @@
       "name": "Unfeature Old Stories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1540,
-        0
-      ],
+      "position": [1540, 0],
       "onError": "continueRegularOutput"
     },
     {
@@ -307,10 +277,7 @@
       "name": "Insert Stories",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        1760,
-        0
-      ],
+      "position": [1760, 0],
       "onError": "continueRegularOutput"
     }
   ],

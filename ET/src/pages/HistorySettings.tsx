@@ -14,11 +14,6 @@ export function HistorySettings() {
   const [confirmClear, setConfirmClear] = useState(false);
   const user = useAuthStore((s) => s.user);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    loadSessions();
-  }, [user?.id]);
-
   async function loadSessions() {
     setLoading(true);
     const { data } = await supabase
@@ -35,6 +30,11 @@ export function HistorySettings() {
     setSessions(results);
     setLoading(false);
   }
+
+  useEffect(() => {
+    if (!user?.id) return;
+    loadSessions();
+  }, [user?.id]);
 
   async function clearAllHistory() {
     if (!user?.id) return;
@@ -90,9 +90,10 @@ export function HistorySettings() {
       <div className="space-y-2">
         {sessions.map((session) => {
           const messageCount = Array.isArray(session.messages) ? session.messages.length : 0;
-          const lastMessage = Array.isArray(session.messages) && session.messages.length > 0
-            ? session.messages[session.messages.length - 1]
-            : null;
+          const lastMessage =
+            Array.isArray(session.messages) && session.messages.length > 0
+              ? session.messages[session.messages.length - 1]
+              : null;
 
           return (
             <Link
@@ -102,9 +103,7 @@ export function HistorySettings() {
             >
               <MessageSquare className="size-4 text-stone-400 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-stone-900 dark:text-white truncate">
-                  {session.story_title}
-                </p>
+                <p className="text-sm font-medium text-stone-900 dark:text-white truncate">{session.story_title}</p>
                 {lastMessage && (
                   <p className="text-xs text-stone-500 truncate mt-0.5">
                     {(lastMessage as { content?: string }).content?.slice(0, 80)}

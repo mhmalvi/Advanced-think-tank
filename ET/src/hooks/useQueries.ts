@@ -165,4 +165,3 @@ export function useSavedQueries() {
     enabled: !!user,
   });
 }
-

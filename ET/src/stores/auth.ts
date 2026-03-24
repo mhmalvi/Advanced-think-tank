@@ -62,159 +62,181 @@ window.__authStore = null;
 export const useAuthStore = create<AuthState>((set, get) => {
   // @ts-expect-error — temp debug
   window.__authStore = { set, get };
-  return ({
-  user: null,
-  session: null,
-  profile: null,
-  loading: true,
-  initialized: false,
-  needsOnboarding: false,
+  return {
+    user: null,
+    session: null,
+    profile: null,
+    loading: true,
+    initialized: false,
+    needsOnboarding: false,
 
-  /**
-   * Initializes auth state: restores session from Supabase, fetches profile, and registers
-   * an onAuthStateChange listener. Protected by a 3s hard timeout to prevent hanging.
-   */
-  initialize: async () => {
-    if (get().initialized) return;
+    /**
+     * Initializes auth state: restores session from Supabase, fetches profile, and registers
+     * an onAuthStateChange listener. Protected by a 3s hard timeout to prevent hanging.
+     */
+    initialize: async () => {
+      if (get().initialized) return;
 
-    // No Supabase configured — activate dev mode with mock user
-    if (!isSupabaseConfigured()) {
-      logger.info("Supabase not configured — activating dev mode with mock user");
-      set({
-        user: { id: "dev-user", email: "dev@jaegeren.local" } as unknown as User,
-        loading: false,
-        initialized: true,
-        needsOnboarding: false,
-      });
-      return;
-    }
+      // No Supabase configured — activate dev mode with mock user
+      if (!isSupabaseConfigured()) {
+        logger.info("Supabase not configured — activating dev mode with mock user");
+        set({
+          user: { id: "dev-user", email: "dev@jaegeren.local" } as unknown as User,
+          loading: false,
+          initialized: true,
+          needsOnboarding: false,
+        });
+        return;
+      }
 
-    // Hard timeout: if init takes > 3s, stop loading and show auth page
-    const timeout = setTimeout(() => {
-      if (!get().initialized) {
+      // Hard timeout: if init takes > 3s, stop loading and show auth page
+      const timeout = setTimeout(() => {
+        if (!get().initialized) {
+          set({ user: null, session: null, profile: null, loading: false, initialized: true });
+        }
+      }, 3000);
+
+      try {
+        // Unsubscribe any previous listener
+        if (authSubscription) {
+          authSubscription.unsubscribe();
+          authSubscription = null;
+        }
+
+        // Register auth state change listener for future events (sign-in, sign-out, token refresh)
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (session?.user) {
+            // Don't await — fire and forget to avoid blocking signInWithPassword
+            withTimeout(fetchProfile(session.user.id), 2000).then((profile) => {
+              const needsOnboarding = profile ? !profile.onboarding_completed : false;
+              set({ user: session.user, session, profile, needsOnboarding, loading: false, initialized: true });
+            });
+          } else {
+            set({
+              user: null,
+              session: null,
+              profile: null,
+              needsOnboarding: false,
+              loading: false,
+              initialized: true,
+            });
+          }
+        });
+        authSubscription = subscription;
+
+        // Try to get current session (with 2.5s timeout to prevent hanging)
+        const sessionResult = await withTimeout(supabase.auth.getSession(), 2500);
+
+        // Timeout or error — show auth page
+        if (!sessionResult) {
+          set({ loading: false, initialized: true });
+          clearTimeout(timeout);
+          return;
+        }
+
+        const {
+          data: { session },
+          error: sessionError,
+        } = sessionResult;
+
+        // Stale/invalid token — clear and show auth page
+        if (sessionError) {
+          supabase.auth.signOut().catch(() => {});
+          set({ loading: false, initialized: true });
+          clearTimeout(timeout);
+          return;
+        }
+
+        // Valid session — fetch profile
+        if (session?.user) {
+          const profile = await withTimeout(fetchProfile(session.user.id), 2000);
+          const needsOnboarding = profile ? !profile.onboarding_completed : false;
+          set({ user: session.user, session, profile, needsOnboarding, loading: false, initialized: true });
+        } else {
+          // No session — show auth page
+          set({ loading: false, initialized: true });
+        }
+      } catch (e) {
+        logger.error("Auth initialization error", { error: e instanceof Error ? e.message : String(e) });
         set({ user: null, session: null, profile: null, loading: false, initialized: true });
       }
-    }, 3000);
 
-    try {
-      // Unsubscribe any previous listener
+      clearTimeout(timeout);
+    },
+
+    /** Signs in with email/password. Returns a sanitized error message on failure to avoid leaking internals. */
+    signIn: async (email, password) => {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) return { error: sanitizeAuthError(error.message) };
+      // Directly set user so we don't rely solely on onAuthStateChange
+      if (data.session?.user) {
+        const profile = await withTimeout(fetchProfile(data.session.user.id), 2000);
+        const needsOnboarding = profile ? !profile.onboarding_completed : false;
+        set({
+          user: data.session.user,
+          session: data.session,
+          profile,
+          needsOnboarding,
+          loading: false,
+          initialized: true,
+        });
+      }
+      return { error: null };
+    },
+
+    /** Creates a new account and auto-signs in if email verification is disabled. Returns sanitized errors. */
+    signUp: async (email, password, fullName) => {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } },
+      });
+      if (error) return { error: sanitizeAuthError(error.message) };
+      // Directly set user if auto-confirmed (no email verification)
+      if (data.session?.user) {
+        const profile = await withTimeout(fetchProfile(data.session.user.id), 2000);
+        const needsOnboarding = profile ? !profile.onboarding_completed : true;
+        set({
+          user: data.session.user,
+          session: data.session,
+          profile,
+          needsOnboarding,
+          loading: false,
+          initialized: true,
+        });
+      }
+      return { error: null };
+    },
+
+    resetPassword: async (email: string) => {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset`,
+      });
+      if (error) return { error: sanitizeAuthError(error.message) };
+      return { error: null };
+    },
+
+    updatePassword: async (newPassword: string) => {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) return { error: sanitizeAuthError(error.message) };
+      return { error: null };
+    },
+
+    signOut: async () => {
+      // Unsubscribe auth listener
       if (authSubscription) {
         authSubscription.unsubscribe();
         authSubscription = null;
       }
-
-      // Register auth state change listener for future events (sign-in, sign-out, token refresh)
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          // Don't await — fire and forget to avoid blocking signInWithPassword
-          withTimeout(fetchProfile(session.user.id), 2000).then((profile) => {
-            const needsOnboarding = profile ? !profile.onboarding_completed : false;
-            set({ user: session.user, session, profile, needsOnboarding, loading: false, initialized: true });
-          });
-        } else {
-          set({ user: null, session: null, profile: null, needsOnboarding: false, loading: false, initialized: true });
-        }
-      });
-      authSubscription = subscription;
-
-      // Try to get current session (with 2.5s timeout to prevent hanging)
-      const sessionResult = await withTimeout(supabase.auth.getSession(), 2500);
-
-      // Timeout or error — show auth page
-      if (!sessionResult) {
-        set({ loading: false, initialized: true });
-        clearTimeout(timeout);
-        return;
-      }
-
-      const {
-        data: { session },
-        error: sessionError,
-      } = sessionResult;
-
-      // Stale/invalid token — clear and show auth page
-      if (sessionError) {
-        supabase.auth.signOut().catch(() => {});
-        set({ loading: false, initialized: true });
-        clearTimeout(timeout);
-        return;
-      }
-
-      // Valid session — fetch profile
-      if (session?.user) {
-        const profile = await withTimeout(fetchProfile(session.user.id), 2000);
-        const needsOnboarding = profile ? !profile.onboarding_completed : false;
-        set({ user: session.user, session, profile, needsOnboarding, loading: false, initialized: true });
-      } else {
-        // No session — show auth page
-        set({ loading: false, initialized: true });
-      }
-    } catch (e) {
-      logger.error("Auth initialization error", { error: e instanceof Error ? e.message : String(e) });
-      set({ user: null, session: null, profile: null, loading: false, initialized: true });
-    }
-
-    clearTimeout(timeout);
-  },
-
-  /** Signs in with email/password. Returns a sanitized error message on failure to avoid leaking internals. */
-  signIn: async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: sanitizeAuthError(error.message) };
-    // Directly set user so we don't rely solely on onAuthStateChange
-    if (data.session?.user) {
-      const profile = await withTimeout(fetchProfile(data.session.user.id), 2000);
-      const needsOnboarding = profile ? !profile.onboarding_completed : false;
-      set({ user: data.session.user, session: data.session, profile, needsOnboarding, loading: false, initialized: true });
-    }
-    return { error: null };
-  },
-
-  /** Creates a new account and auto-signs in if email verification is disabled. Returns sanitized errors. */
-  signUp: async (email, password, fullName) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-    if (error) return { error: sanitizeAuthError(error.message) };
-    // Directly set user if auto-confirmed (no email verification)
-    if (data.session?.user) {
-      const profile = await withTimeout(fetchProfile(data.session.user.id), 2000);
-      const needsOnboarding = profile ? !profile.onboarding_completed : true;
-      set({ user: data.session.user, session: data.session, profile, needsOnboarding, loading: false, initialized: true });
-    }
-    return { error: null };
-  },
-
-  resetPassword: async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset`,
-    });
-    if (error) return { error: sanitizeAuthError(error.message) };
-    return { error: null };
-  },
-
-  updatePassword: async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) return { error: sanitizeAuthError(error.message) };
-    return { error: null };
-  },
-
-  signOut: async () => {
-    // Unsubscribe auth listener
-    if (authSubscription) {
-      authSubscription.unsubscribe();
-      authSubscription = null;
-    }
-    await supabase.auth
-      .signOut()
-      .catch((e) => logger.error("Sign-out error", { error: e instanceof Error ? e.message : String(e) }));
-    set({ user: null, session: null, profile: null });
-    // Reset app store to clear user-scoped data
-    const { useAppStore } = await import("@/stores/app");
-    useAppStore.getState().resetStore();
-  },
-})});
+      await supabase.auth
+        .signOut()
+        .catch((e) => logger.error("Sign-out error", { error: e instanceof Error ? e.message : String(e) }));
+      set({ user: null, session: null, profile: null });
+      // Reset app store to clear user-scoped data
+      const { useAppStore } = await import("@/stores/app");
+      useAppStore.getState().resetStore();
+    },
+  };
+});

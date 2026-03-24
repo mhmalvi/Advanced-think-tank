@@ -16,9 +16,7 @@ export function InteractionButtons({ storyId, size = "sm", showBookmark = true }
   const toggleBookmark = useInteractionsStore((s) => s.toggleBookmark);
 
   const iconSize = size === "sm" ? "size-3.5" : "size-4";
-  const btnBase = size === "sm"
-    ? "p-1 rounded transition-colors"
-    : "p-1.5 rounded-md transition-colors";
+  const btnBase = size === "sm" ? "p-1 rounded transition-colors" : "p-1.5 rounded-md transition-colors";
 
   return (
     <div className="flex items-center gap-0.5" onClick={(e) => e.preventDefault()}>

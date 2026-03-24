@@ -157,10 +157,12 @@ export function RightSidebar({ collapsed = false }: RightSidebarProps) {
           <div className="space-y-1">
             {latestArticles.length > 0 ? (
               latestArticles.map((article) => (
-                <button
+                <a
                   key={article.id}
-                  onClick={() => handleQuery(article.title)}
-                  className="w-full text-left px-2 py-1.5 text-[11px] border border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-500 bg-white dark:bg-stone-900 rounded transition-colors"
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full text-left px-2 py-1.5 text-[11px] border border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-500 bg-white dark:bg-stone-900 rounded transition-colors"
                 >
                   <span className="line-clamp-2 text-stone-700 dark:text-stone-300 leading-snug">{article.title}</span>
                   <div className="flex items-center gap-2 text-[10px] text-stone-400 mt-0.5">
@@ -172,7 +174,7 @@ export function RightSidebar({ collapsed = false }: RightSidebarProps) {
                       </>
                     )}
                   </div>
-                </button>
+                </a>
               ))
             ) : (
               <p className="text-[10px] text-stone-400 italic px-2 py-1">{t.common.loading}</p>

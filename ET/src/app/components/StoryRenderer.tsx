@@ -2,8 +2,17 @@ import { useState, useMemo, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
 } from "recharts";
 import { ChevronDown, ChevronRight, Quote } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,9 +65,9 @@ function parseStoryContent(raw: string): ParsedBlock[] {
         remaining = remaining.slice(bgStart + "[BACKGROUND]".length);
       }
     } else if (earliest === pqStart) {
-      const match = remaining.slice(pqStart).match(
-        /<pull_quote\s+source="([^"]*)"\s+author="([^"]*)"\s+date="([^"]*)">([\s\S]*?)<\/pull_quote>/,
-      );
+      const match = remaining
+        .slice(pqStart)
+        .match(/<pull_quote\s+source="([^"]*)"\s+author="([^"]*)"\s+date="([^"]*)">([\s\S]*?)<\/pull_quote>/);
       if (match) {
         blocks.push({ type: "pull_quote", source: match[1], author: match[2], date: match[3], text: match[4].trim() });
         remaining = remaining.slice(pqStart + match[0].length);
@@ -66,22 +75,24 @@ function parseStoryContent(raw: string): ParsedBlock[] {
         remaining = remaining.slice(pqStart + 1);
       }
     } else if (earliest === cdStart) {
-      const match = remaining.slice(cdStart).match(
-        /<chart_data\s+type="([^"]*)"\s+data='([^']*)'\s+title="([^"]*)"[^/]*\/>/,
-      );
+      const match = remaining
+        .slice(cdStart)
+        .match(/<chart_data\s+type="([^"]*)"\s+data='([^']*)'\s+title="([^"]*)"[^/]*\/>/);
       if (match) {
         try {
           const data = JSON.parse(match[2]) as Record<string, unknown>[];
           blocks.push({ type: "chart_data", chartType: match[1] as "donut" | "bar" | "line", data, title: match[3] });
-        } catch { /* skip malformed */ }
+        } catch {
+          /* skip malformed */
+        }
         remaining = remaining.slice(cdStart + match[0].length);
       } else {
         remaining = remaining.slice(cdStart + 1);
       }
     } else if (earliest === scStart) {
-      const match = remaining.slice(scStart).match(
-        /<stat_callout\s+value="([^"]*)"\s+label="([^"]*)"\s+source="([^"]*)"[^/]*\/>/,
-      );
+      const match = remaining
+        .slice(scStart)
+        .match(/<stat_callout\s+value="([^"]*)"\s+label="([^"]*)"\s+source="([^"]*)"[^/]*\/>/);
       if (match) {
         blocks.push({ type: "stat_callout", value: match[1], label: match[2], source: match[3] });
         remaining = remaining.slice(scStart + match[0].length);
@@ -107,19 +118,11 @@ function MarkdownBlock({ content }: { content: string }) {
           </h2>
         ),
         h3: ({ children }) => (
-          <h3 className="text-lg font-semibold mt-5 mb-2 text-stone-800 dark:text-stone-100">
-            {children}
-          </h3>
+          <h3 className="text-lg font-semibold mt-5 mb-2 text-stone-800 dark:text-stone-100">{children}</h3>
         ),
-        p: ({ children }) => (
-          <p className="text-stone-700 dark:text-stone-300 mb-3 leading-relaxed">{children}</p>
-        ),
-        strong: ({ children }) => (
-          <strong className="font-semibold text-stone-900 dark:text-white">{children}</strong>
-        ),
-        em: ({ children }) => (
-          <em className="italic text-stone-600 dark:text-stone-400">{children}</em>
-        ),
+        p: ({ children }) => <p className="text-stone-700 dark:text-stone-300 mb-3 leading-relaxed">{children}</p>,
+        strong: ({ children }) => <strong className="font-semibold text-stone-900 dark:text-white">{children}</strong>,
+        em: ({ children }) => <em className="italic text-stone-600 dark:text-stone-400">{children}</em>,
         ul: ({ children }) => (
           <ul className="list-disc ml-5 mb-3 space-y-1 text-stone-700 dark:text-stone-300">{children}</ul>
         ),
@@ -133,7 +136,12 @@ function MarkdownBlock({ content }: { content: string }) {
           </blockquote>
         ),
         a: ({ href, children }) => (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-800 dark:hover:text-blue-300">
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-800 dark:hover:text-blue-300"
+          >
             {children}
           </a>
         ),
@@ -169,14 +177,22 @@ function BackgroundSection({ content }: { content: string }) {
 
 // ─── Pull Quote ───
 
-function PullQuoteBlock({ source, author, date, text }: { source: string; author: string; date: string; text: string }) {
+function PullQuoteBlock({
+  source,
+  author,
+  date,
+  text,
+}: {
+  source: string;
+  author: string;
+  date: string;
+  text: string;
+}) {
   return (
     <figure className="my-6 px-6 py-5 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/40">
       <div className="flex gap-3">
         <Quote className="size-6 text-stone-300 dark:text-stone-600 shrink-0 mt-0.5" />
-        <blockquote className="text-base italic text-stone-700 dark:text-stone-300 leading-relaxed">
-          {text}
-        </blockquote>
+        <blockquote className="text-base italic text-stone-700 dark:text-stone-300 leading-relaxed">{text}</blockquote>
       </div>
       <figcaption className="mt-3 ml-9 text-xs text-stone-500 dark:text-stone-400">
         <span className="font-medium text-stone-700 dark:text-stone-300">{author}</span>

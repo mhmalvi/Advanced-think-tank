@@ -49,12 +49,8 @@ export function PasswordResetPage() {
       <div className="min-h-screen bg-white dark:bg-stone-950 flex items-center justify-center p-8">
         <div className="w-full max-w-sm text-center">
           <CheckCircle2 className="size-12 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-black dark:text-white mb-2">
-            {t.auth.passwordUpdated}
-          </h2>
-          <p className="text-sm text-stone-600 dark:text-stone-400 mb-6">
-            {t.auth.passwordUpdatedDesc}
-          </p>
+          <h2 className="text-2xl font-bold text-black dark:text-white mb-2">{t.auth.passwordUpdated}</h2>
+          <p className="text-sm text-stone-600 dark:text-stone-400 mb-6">{t.auth.passwordUpdatedDesc}</p>
           <Link
             to="/dashboard"
             replace
@@ -71,12 +67,8 @@ export function PasswordResetPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-stone-950 flex items-center justify-center p-8">
       <div className="w-full max-w-sm">
-        <h2 className="text-2xl font-bold text-black dark:text-white mb-1">
-          {t.auth.resetPassword}
-        </h2>
-        <p className="text-sm text-stone-600 dark:text-stone-400 mb-6">
-          {t.auth.resetPasswordDesc}
-        </p>
+        <h2 className="text-2xl font-bold text-black dark:text-white mb-1">{t.auth.resetPassword}</h2>
+        <p className="text-sm text-stone-600 dark:text-stone-400 mb-6">{t.auth.resetPasswordDesc}</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -97,7 +89,10 @@ export function PasswordResetPage() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1"
+            >
               {t.auth.confirmPassword}
             </label>
             <input

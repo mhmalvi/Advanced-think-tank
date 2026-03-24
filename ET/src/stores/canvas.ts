@@ -56,11 +56,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         const allStories = useStoriesStore.getState().stories;
         story = allStories.find((s) => s.id === storyId) ?? null;
       } else {
-        const { data, error } = await supabase
-          .from("stories")
-          .select("*")
-          .eq("id", storyId)
-          .single();
+        const { data, error } = await supabase.from("stories").select("*").eq("id", storyId).single();
         if (error) throw error;
         story = data as Story;
       }
@@ -93,11 +89,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   loadSession: async (sessionId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("canvas_sessions")
-        .select("*")
-        .eq("id", sessionId)
-        .single();
+      const { data, error } = await supabase.from("canvas_sessions").select("*").eq("id", sessionId).single();
 
       if (error || !data) return;
 

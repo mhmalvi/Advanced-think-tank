@@ -27,6 +27,33 @@ import { Skeleton } from "@/app/components/ui/skeleton";
 import { toast } from "sonner";
 import type { CanvasSession as _CanvasSession } from "@/types/database";
 
+// ─── Markdown formatting for chat messages ───
+function formatChatMarkdown(text: string): string {
+  return (
+    text
+      // Headers
+      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+      // Bold + Italic
+      .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      // Unordered lists
+      .replace(/^[-*] (.+)$/gm, "<li>$1</li>")
+      .replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>")
+      // Ordered lists
+      .replace(/^\d+\. (.+)$/gm, "<li>$1</li>")
+      // Inline code
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      // Line breaks
+      .replace(/\n{2,}/g, "</p><p>")
+      .replace(/\n/g, "<br>")
+      .replace(/^/, "<p>")
+      .replace(/$/, "</p>")
+  );
+}
+
 // ─── Chat Panel ───
 function ChatPanel() {
   const [input, setInput] = useState("");
@@ -172,7 +199,14 @@ function ChatPanel() {
                   : "bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-stone-800 dark:text-stone-200 rounded-bl-sm"
               }`}
             >
-              {msg.content}
+              {msg.role === "assistant" ? (
+                <div
+                  className="prose prose-sm dark:prose-invert prose-stone max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm"
+                  dangerouslySetInnerHTML={{ __html: formatChatMarkdown(msg.content) }}
+                />
+              ) : (
+                msg.content
+              )}
             </div>
           </div>
         ))}
@@ -198,7 +232,7 @@ function ChatPanel() {
             onKeyDown={handleKeyDown}
             placeholder="Ask about this story..."
             rows={2}
-            className="w-full resize-none rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 pr-10 text-sm text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 transition-colors"
+            className="w-full resize-y rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 pr-10 text-sm text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 transition-colors min-h-[56px] max-h-[200px]"
           />
           <button
             type="submit"
@@ -576,7 +610,7 @@ function StoryPanel() {
 
       {/* Story content */}
       <div className="flex-1 overflow-y-auto p-6 md:p-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           {/* Title + Labels */}
           <h1 className="text-2xl md:text-3xl font-bold text-stone-900 dark:text-white mb-3 leading-tight">
             {currentStory.title}
@@ -726,11 +760,43 @@ function MobileCanvas() {
   );
 }
 
+// ─── Resizable Divider ───
+function ResizeHandle({ onDrag }: { onDrag: (deltaX: number) => void }) {
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const onMouseMove = (ev: MouseEvent) => {
+        onDrag(ev.clientX - startX);
+      };
+      const onMouseUp = () => {
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    },
+    [onDrag],
+  );
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      className="w-1 hover:w-1.5 cursor-col-resize bg-stone-200 dark:bg-stone-800 hover:bg-stone-400 dark:hover:bg-stone-600 transition-colors shrink-0"
+    />
+  );
+}
+
 // ─── Main Canvas Page ───
 export function CanvasPage() {
   const { storyId } = useParams<{ storyId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [chatWidth, setChatWidth] = useState(384); // default ~w-96
 
   const loadStory = useCanvasStore((s) => s.loadStory);
   const loadSession = useCanvasStore((s) => s.loadSession);
@@ -738,6 +804,15 @@ export function CanvasPage() {
   const storyError = useCanvasStore((s) => s.storyError);
   const currentStory = useCanvasStore((s) => s.currentStory);
   const resetCanvas = useCanvasStore((s) => s.resetCanvas);
+
+  const baseWidth = useRef(chatWidth);
+  const handleDrag = useCallback((deltaX: number) => {
+    setChatWidth(Math.max(280, Math.min(600, baseWidth.current + deltaX)));
+  }, []);
+
+  useEffect(() => {
+    baseWidth.current = chatWidth;
+  }, [chatWidth]);
 
   useEffect(() => {
     if (!storyId) {
@@ -768,11 +843,12 @@ export function CanvasPage() {
 
   return (
     <>
-      {/* Desktop: side-by-side */}
+      {/* Desktop: side-by-side with resizable chat */}
       <div className="hidden md:flex h-full">
-        <div className="w-80 lg:w-96 shrink-0">
+        <div className="shrink-0" style={{ width: chatWidth }}>
           <ChatPanel />
         </div>
+        <ResizeHandle onDrag={handleDrag} />
         <StoryPanel />
       </div>
 

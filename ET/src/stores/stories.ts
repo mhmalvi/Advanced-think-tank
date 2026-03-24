@@ -207,7 +207,7 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
         .order("source_count", { ascending: false })
         .order("confidence_score", { ascending: false })
         .order("created_at", { ascending: false })
-        .limit(30);
+        .limit(80);
 
       if (error) throw error;
 
@@ -220,7 +220,7 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
           .order("source_count", { ascending: false })
           .order("confidence_score", { ascending: false })
           .order("created_at", { ascending: false })
-          .limit(30);
+          .limit(80);
 
         if (fallback.error) throw fallback.error;
         data = fallback.data;
