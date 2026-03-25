@@ -199,7 +199,7 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
       since.setHours(since.getHours() - 48);
 
       // Try recent stories first (last 48h)
-      const { data, error } = await supabase
+      let result = await supabase
         .from("stories")
         .select("*")
         .gte("created_at", since.toISOString())
@@ -209,11 +209,11 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
         .order("created_at", { ascending: false })
         .limit(80);
 
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       // Fallback: if no recent stories, fetch the latest regardless of age
-      if (!data || data.length === 0) {
-        const fallback = await supabase
+      if (!result.data || result.data.length === 0) {
+        result = await supabase
           .from("stories")
           .select("*")
           .order("is_featured", { ascending: false })
@@ -222,11 +222,10 @@ export const useStoriesStore = create<StoriesState>((set, get) => ({
           .order("created_at", { ascending: false })
           .limit(80);
 
-        if (fallback.error) throw fallback.error;
-        data = fallback.data;
+        if (result.error) throw result.error;
       }
 
-      const stories = (data ?? []) as Story[];
+      const stories = (result.data ?? []) as Story[];
       const featuredStory = stories.find((s) => s.is_featured) ?? stories[0] ?? null;
 
       set({ stories, featuredStory, storiesLoading: false });

@@ -129,7 +129,7 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
                 <li key={story.id}>
                   <Link
                     to={`/canvas/${story.id}`}
-                    className="w-full text-left px-2 py-1.5 text-xs text-stone-600 dark:text-stone-400 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800 rounded flex items-start gap-2 group transition-colors"
+                    className="w-full text-left px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800 rounded flex items-start gap-2 group transition-colors"
                   >
                     <Newspaper className="size-3 mt-0.5 shrink-0 text-stone-400 dark:text-stone-600 group-hover:text-stone-600 dark:group-hover:text-stone-300" />
                     <div className="min-w-0 flex-1">

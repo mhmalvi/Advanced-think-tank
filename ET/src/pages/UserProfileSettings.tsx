@@ -175,7 +175,7 @@ export function UserProfileSettings() {
         <div>
           <label
             htmlFor="avatar-upload"
-            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-stone-300 dark:border-stone-600 rounded-md shadow-sm text-sm font-medium text-stone-700 dark:text-stone-200 bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-500"
+            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-stone-300 dark:border-stone-600 rounded-md shadow-sm text-sm font-medium text-stone-700 dark:text-stone-200 bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-stone-500"
           >
             <Upload className="h-4 w-4" />
             {t.profile.uploadPhoto}
@@ -224,7 +224,7 @@ export function UserProfileSettings() {
           <p className="text-sm text-stone-500 mb-4">{t.profile.connectHint}</p>
 
           <div className="space-y-3">
-            <button className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-stone-300 dark:border-stone-600 rounded-md text-sm font-medium bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
+            <button className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-stone-300 dark:border-stone-600 rounded-md text-sm font-medium bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -245,7 +245,7 @@ export function UserProfileSettings() {
               </svg>
               {t.profile.connectGoogle}
             </button>
-            <button className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-stone-300 dark:border-stone-600 rounded-md text-sm font-medium bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
+            <button className="w-full flex items-center justify-center gap-3 px-4 py-2 border border-stone-300 dark:border-stone-600 rounded-md text-sm font-medium bg-white dark:bg-stone-800 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors">
               <svg className="w-4 h-4" viewBox="0 0 21 21">
                 <rect x="1" y="1" width="9" height="9" fill="#f25022" />
                 <rect x="11" y="1" width="9" height="9" fill="#7fba00" />

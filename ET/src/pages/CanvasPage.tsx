@@ -13,6 +13,7 @@ import {
   Newspaper,
   ExternalLink,
 } from "lucide-react";
+import DOMPurify from "dompurify";
 import { useCanvasStore } from "@/stores/canvas";
 import { useInteractionsStore } from "@/stores/interactions";
 import { useLocaleStore } from "@/stores/locale";
@@ -27,31 +28,74 @@ import { Skeleton } from "@/app/components/ui/skeleton";
 import { toast } from "sonner";
 import type { CanvasSession as _CanvasSession } from "@/types/database";
 
+// ─── Escape HTML entities before markdown processing ───
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 // ─── Markdown formatting for chat messages ───
 function formatChatMarkdown(text: string): string {
-  return (
-    text
-      // Headers
-      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-      // Bold + Italic
-      .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      // Unordered lists
-      .replace(/^[-*] (.+)$/gm, "<li>$1</li>")
-      .replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>")
-      // Ordered lists
-      .replace(/^\d+\. (.+)$/gm, "<li>$1</li>")
-      // Inline code
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      // Line breaks
-      .replace(/\n{2,}/g, "</p><p>")
-      .replace(/\n/g, "<br>")
-      .replace(/^/, "<p>")
-      .replace(/$/, "</p>")
-  );
+  // Escape HTML first to prevent XSS
+  const escaped = escapeHtml(text);
+
+  const html = escaped
+    // Code blocks (triple backticks) — before other processing
+    .replace(/```(\w*)\n?([\s\S]*?)```/g, "<pre><code>$2</code></pre>")
+    // Headers
+    .replace(/^### (.+)$/gm, "</p><h3>$1</h3><p>")
+    .replace(/^## (.+)$/gm, "</p><h2>$1</h2><p>")
+    .replace(/^# (.+)$/gm, "</p><h1>$1</h1><p>")
+    // Bold + Italic
+    .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    // Ordered lists — must come before unordered to differentiate
+    .replace(/(?:^\d+\. (.+)$\n?)+/gm, (match) => {
+      const items = match
+        .trim()
+        .split("\n")
+        .map((line) => `<li>${line.replace(/^\d+\.\s*/, "")}</li>`)
+        .join("");
+      return `</p><ol>${items}</ol><p>`;
+    })
+    // Unordered lists
+    .replace(/(?:^[-*] (.+)$\n?)+/gm, (match) => {
+      const items = match
+        .trim()
+        .split("\n")
+        .map((line) => `<li>${line.replace(/^[-*]\s*/, "")}</li>`)
+        .join("");
+      return `</p><ul>${items}</ul><p>`;
+    })
+    // Markdown links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    // Inline code
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    // Paragraphs — double newlines
+    .replace(/\n{2,}/g, "</p><p>")
+    // Single line breaks
+    .replace(/\n/g, "<br>")
+    // Wrap in paragraph
+    .replace(/^/, "<p>")
+    .replace(/$/, "</p>")
+    // Clean up empty paragraphs created by block elements
+    .replace(/<p>\s*<\/p>/g, "");
+
+  // Sanitize with DOMPurify to prevent XSS
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: ["p", "br", "strong", "em", "h1", "h2", "h3", "ul", "ol", "li", "code", "pre", "a"],
+    ALLOWED_ATTR: ["href", "target", "rel"],
+  });
+}
+
+// ─── Strip all story_update tags from text (handles multiple/nested) ───
+function stripStoryUpdateTags(text: string): string {
+  return text.replace(/<story_update>[\s\S]*?<\/story_update>/g, "").trim();
 }
 
 // ─── Chat Panel ───
@@ -94,13 +138,17 @@ function ChatPanel() {
 
         let responseText = result.response;
 
-        // Check for <story_update> tags — extract and apply
-        const storyUpdateMatch = responseText.match(/<story_update>([\s\S]*?)<\/story_update>/);
-        if (storyUpdateMatch) {
-          const updatedContent = storyUpdateMatch[1].trim();
-          updateStoryContent(updatedContent);
-          // Remove the tag from the displayed message
-          responseText = responseText.replace(/<story_update>[\s\S]*?<\/story_update>/, "").trim();
+        // Check for <story_update> tags — extract ALL occurrences and apply the last one
+        const storyUpdateMatches = responseText.match(/<story_update>([\s\S]*?)<\/story_update>/g);
+        if (storyUpdateMatches && storyUpdateMatches.length > 0) {
+          // Use the last match as the final update content
+          const lastMatch = storyUpdateMatches[storyUpdateMatches.length - 1]!;
+          const contentMatch = lastMatch.match(/<story_update>([\s\S]*?)<\/story_update>/);
+          if (contentMatch?.[1]) {
+            updateStoryContent(contentMatch[1].trim());
+          }
+          // Remove ALL story_update tags from the displayed message
+          responseText = stripStoryUpdateTags(responseText);
           if (!responseText) {
             responseText = "I've updated the story with those changes. You can undo with the button in the toolbar.";
           }
@@ -110,7 +158,8 @@ function ChatPanel() {
       } catch (err) {
         const errorMsg =
           err instanceof Error ? err.message : "Something went wrong. Your conversation is saved — try again.";
-        addAssistantMessage(errorMsg);
+        // Strip any story_update tags that may have leaked into error messages
+        addAssistantMessage(stripStoryUpdateTags(errorMsg));
       } finally {
         setChatLoading(false);
         saveSession();
@@ -579,25 +628,25 @@ function StoryPanel() {
                   <div className="border-t border-stone-100 dark:border-stone-700 my-0.5" />
                   <button
                     onClick={() => handleExport("email")}
-                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700"
+                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
                   >
                     Email
                   </button>
                   <button
                     onClick={() => handleExport("docx")}
-                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700"
+                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
                   >
                     Word (.docx)
                   </button>
                   <button
                     onClick={() => handleExport("pdf")}
-                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700"
+                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
                   >
                     PDF (.pdf)
                   </button>
                   <button
                     onClick={() => handleExport("html")}
-                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700"
+                    className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
                   >
                     HTML Report (.html)
                   </button>

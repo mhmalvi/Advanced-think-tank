@@ -44,7 +44,7 @@ export function StoryTimeline({ entries, locale = "en" }: StoryTimelineProps) {
     <div className="mb-6 rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/50 overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wider hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors"
+        className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-stone-500 dark:text-stone-300 uppercase tracking-wider hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
       >
         {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
         <Clock className="size-3.5" />

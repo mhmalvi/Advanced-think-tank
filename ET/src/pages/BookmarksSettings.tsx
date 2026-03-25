@@ -79,6 +79,7 @@ export function BookmarksSettings() {
             <div className="flex items-center gap-2 mt-2 text-[11px] text-stone-400">
               <Newspaper className="size-3" />
               <span>{story.source_count} sources</span>
+              <span>&bull;</span>
               <span>Bookmarked {formatPublicationDate(story.bookmarked_at, locale)}</span>
             </div>
           </Link>
