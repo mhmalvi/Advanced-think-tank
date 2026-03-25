@@ -12,22 +12,24 @@ import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import { Link, useLocation } from "react-router-dom";
 import { useAppStore } from "@/stores/app";
 import { useStoriesStore } from "@/stores/stories";
+import { useLocaleStore } from "@/stores/locale";
 
 interface LeftNavProps {
   collapsed?: boolean;
 }
 
-const mainNav = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "Sources", path: "/sources", icon: Database },
-  { label: "Bookmarks", path: "/bookmarks", icon: Bookmark },
-  { label: "History", path: "/history", icon: Clock },
-];
-
 export function LeftNav({ collapsed = false }: LeftNavProps) {
   const location = useLocation();
   const toggleLeftNav = useAppStore((s) => s.toggleLeftNav);
   const stories = useStoriesStore((s) => s.stories);
+  const t = useLocaleStore((s) => s.t);
+
+  const mainNav = [
+    { label: t.navLabels.dashboard, path: "/dashboard", icon: LayoutDashboard },
+    { label: t.navLabels.sources, path: "/sources", icon: Database },
+    { label: t.navLabels.bookmarks, path: "/bookmarks", icon: Bookmark },
+    { label: t.navLabels.history, path: "/history", icon: Clock },
+  ];
 
   // Top 5 stories by source_count for "Trending"
   const trending = [...stories].sort((a, b) => b.source_count - a.source_count).slice(0, 5);
@@ -44,7 +46,7 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
         <button
           onClick={toggleLeftNav}
           className="p-2 rounded hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors mb-2"
-          title="Expand sidebar"
+          title={t.navLabels.expandSidebar}
         >
           <PanelLeftOpen className="size-4" />
         </button>
@@ -86,7 +88,7 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
           <button
             onClick={toggleLeftNav}
             className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors mt-1"
-            title="Collapse sidebar"
+            title={t.navLabels.collapseSidebar}
           >
             <PanelLeftClose className="size-4" />
           </button>
@@ -122,7 +124,7 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
           <div className="mb-4">
             <div className="flex items-center gap-2 px-1 mb-1.5 text-stone-900 dark:text-stone-100">
               <TrendingUp className="size-3.5" />
-              <h2 className="text-[11px] font-semibold uppercase tracking-wider">Trending</h2>
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider">{t.navLabels.trending}</h2>
             </div>
             <ul className="space-y-0.5">
               {trending.map((story) => (
@@ -135,7 +137,7 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
                     <div className="min-w-0 flex-1">
                       <span className="line-clamp-2 leading-tight">{story.title}</span>
                       <span className="text-[10px] text-stone-400 dark:text-stone-600 mt-0.5 block">
-                        {story.source_count} sources
+                        {story.source_count} {t.dashboard?.sources ?? "sources"}
                       </span>
                     </div>
                   </Link>

@@ -103,6 +103,7 @@ function ChatPanel() {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const t = useLocaleStore((s) => s.t);
 
   const chatMessages = useCanvasStore((s) => s.chatMessages);
   const chatLoading = useCanvasStore((s) => s.chatLoading);
@@ -150,14 +151,13 @@ function ChatPanel() {
           // Remove ALL story_update tags from the displayed message
           responseText = stripStoryUpdateTags(responseText);
           if (!responseText) {
-            responseText = "I've updated the story with those changes. You can undo with the button in the toolbar.";
+            responseText = t.canvas.storyUpdated;
           }
         }
 
         addAssistantMessage(responseText);
       } catch (err) {
-        const errorMsg =
-          err instanceof Error ? err.message : "Something went wrong. Your conversation is saved — try again.";
+        const errorMsg = err instanceof Error ? err.message : t.canvas.chatError;
         // Strip any story_update tags that may have leaked into error messages
         addAssistantMessage(stripStoryUpdateTags(errorMsg));
       } finally {
@@ -176,6 +176,8 @@ function ChatPanel() {
       setChatLoading,
       saveSession,
       updateStoryContent,
+      t.canvas.chatError,
+      t.canvas.storyUpdated,
     ],
   );
 
@@ -186,11 +188,7 @@ function ChatPanel() {
     }
   };
 
-  const suggestedPrompts = [
-    "Summarize the key developments",
-    "What's the Danish business impact?",
-    "Give me more background context",
-  ];
+  const suggestedPrompts = [t.canvas.suggestSummarize, t.canvas.suggestImpact, t.canvas.suggestBackground];
 
   return (
     <div className="flex flex-col h-full border-r border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950">
@@ -204,7 +202,7 @@ function ChatPanel() {
             }}
             className="w-full text-xs bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded px-2 py-1.5 text-stone-700 dark:text-stone-300"
           >
-            <option value="">New conversation</option>
+            <option value="">{t.canvas.newConversation}</option>
             {previousSessions.map((s) => (
               <option key={s.id} value={s.id}>
                 {formatPublicationDate(s.updated_at)} — {s.messages.length} messages
@@ -219,18 +217,14 @@ function ChatPanel() {
         {chatMessages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <MessageSquare className="size-8 text-stone-300 dark:text-stone-700 mb-3" />
-            <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-1">
-              Ask me anything about this story
-            </p>
-            <p className="text-xs text-stone-400 dark:text-stone-600 mb-4">
-              I can summarize, expand, analyze impact, or find connections.
-            </p>
+            <p className="text-sm font-medium text-stone-600 dark:text-stone-400 mb-1">{t.canvas.askAnything}</p>
+            <p className="text-xs text-stone-400 dark:text-stone-600 mb-4">{t.canvas.canDoDescription}</p>
             <div className="space-y-1.5 w-full">
               {suggestedPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   onClick={() => setInput(prompt)}
-                  className="w-full text-left px-3 py-2 text-xs text-stone-600 dark:text-stone-400 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded hover:border-stone-400 dark:hover:border-stone-600 transition-colors"
+                  className="w-full text-left px-3 py-2 text-xs text-stone-600 dark:text-stone-300 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded hover:border-stone-400 dark:hover:border-stone-600 transition-colors"
                 >
                   {prompt}
                 </button>
@@ -279,7 +273,7 @@ function ChatPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about this story..."
+            placeholder={t.canvas.inputPlaceholder}
             rows={2}
             className="w-full resize-y rounded-lg border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 pr-10 text-sm text-stone-800 dark:text-stone-200 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 dark:focus:border-stone-500 transition-colors min-h-[56px] max-h-[200px]"
           />
@@ -303,7 +297,7 @@ function StoryPanel() {
   const currentContent = useCanvasStore((s) => s.currentContent);
   const storyVersions = useCanvasStore((s) => s.storyVersions);
   const undoStoryChange = useCanvasStore((s) => s.undoStoryChange);
-  const locale = useLocaleStore((s) => s.locale);
+  const { locale, t } = useLocaleStore();
   const [exportOpen, setExportOpen] = useState(false);
 
   const { toggleLike, toggleDislike, toggleBookmark, getInteraction, isBookmarked } = useInteractionsStore();
@@ -580,7 +574,7 @@ function StoryPanel() {
             <button
               onClick={undoStoryChange}
               className="p-1.5 rounded text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-              title="Undo last change"
+              title={t.canvas.undoChange}
             >
               <Undo2 className="size-4" />
             </button>
@@ -588,21 +582,21 @@ function StoryPanel() {
           <button
             onClick={() => toggleBookmark(currentStory.id)}
             className={`p-1.5 rounded transition-colors ${bookmarked ? "text-amber-500 bg-amber-50 dark:bg-amber-900/20" : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"}`}
-            title="Bookmark"
+            title={t.common.save}
           >
             <Bookmark className="size-4" fill={bookmarked ? "currentColor" : "none"} />
           </button>
           <button
             onClick={() => toggleLike(currentStory.id)}
             className={`p-1.5 rounded transition-colors ${interaction === "like" ? "text-green-600 bg-green-50 dark:bg-green-900/20" : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"}`}
-            title="Like"
+            title={t.common.helpful}
           >
             <ThumbsUp className="size-4" fill={interaction === "like" ? "currentColor" : "none"} />
           </button>
           <button
             onClick={() => toggleDislike(currentStory.id)}
             className={`p-1.5 rounded transition-colors ${interaction === "dislike" ? "text-red-500 bg-red-50 dark:bg-red-900/20" : "text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"}`}
-            title="Dislike"
+            title={t.common.notHelpful}
           >
             <ThumbsDown className="size-4" fill={interaction === "dislike" ? "currentColor" : "none"} />
           </button>
@@ -610,7 +604,7 @@ function StoryPanel() {
             <button
               onClick={() => setExportOpen(!exportOpen)}
               className="p-1.5 rounded text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
-              title="Export"
+              title={t.canvas.exportMenu}
             >
               <Download className="size-4" />
             </button>
@@ -621,34 +615,34 @@ function StoryPanel() {
                   <button
                     onClick={() => navigate("/analyst")}
                     className="w-full text-left px-4 py-2 text-sm text-stone-400 cursor-default"
-                    title="Coming soon — Analyst Mode"
+                    title={t.canvas.comingSoon}
                   >
-                    Send to Analyst
+                    {t.canvas.sendToAnalyst}
                   </button>
                   <div className="border-t border-stone-100 dark:border-stone-700 my-0.5" />
                   <button
                     onClick={() => handleExport("email")}
                     className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
                   >
-                    Email
+                    {t.canvas.emailExport}
                   </button>
                   <button
                     onClick={() => handleExport("docx")}
                     className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
                   >
-                    Word (.docx)
+                    {t.canvas.wordExport}
                   </button>
                   <button
                     onClick={() => handleExport("pdf")}
                     className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
                   >
-                    PDF (.pdf)
+                    {t.canvas.pdfExport}
                   </button>
                   <button
                     onClick={() => handleExport("html")}
                     className="w-full text-left px-4 py-2 text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800"
                   >
-                    HTML Report (.html)
+                    {t.canvas.htmlExport}
                   </button>
                 </div>
               </>
@@ -693,7 +687,7 @@ type SourceArticle = { id: string; title: string; url: string; published_at: str
 
 function SourceArticles({ articleIds }: { articleIds: string[] }) {
   const [articles, setArticles] = useState<SourceArticle[]>([]);
-  const locale = useLocaleStore((s) => s.locale);
+  const { locale, t } = useLocaleStore();
 
   const idsKey = articleIds.join(",");
   const stableIds = useMemo(() => articleIds, [idsKey]);
@@ -725,7 +719,7 @@ function SourceArticles({ articleIds }: { articleIds: string[] }) {
   return (
     <div className="mt-10 pt-6 border-t-2 border-stone-200 dark:border-stone-800">
       <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400 mb-4">
-        Sources ({articles.length})
+        {t.canvas.sourcesCount} ({articles.length})
       </h2>
       <div className="space-y-2">
         {articles.map((article) => (

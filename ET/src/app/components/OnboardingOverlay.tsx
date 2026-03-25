@@ -143,26 +143,26 @@ export function OnboardingOverlay() {
       // Update auth store
       useAuthStore.setState({ needsOnboarding: false });
 
-      toast.success("Setup complete! Your feed is now personalized.");
+      toast.success(t.onboarding?.setupComplete ?? "Setup complete! Your feed is now personalized.");
     } catch (e) {
-      toast.error("Failed to save preferences. Please try again.");
+      toast.error(t.onboarding?.saveFailed ?? "Failed to save preferences. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
   const stepTitles: Record<Step, string> = {
-    1: "What industries matter to you?",
-    2: "What regions do you follow?",
-    3: "Choose your analysis perspectives",
-    4: "Theme & Display",
+    1: t.onboarding?.industriesTitle ?? "What industries matter to you?",
+    2: t.onboarding?.regionsTitle ?? "What regions do you follow?",
+    3: t.onboarding?.perspectivesTitle ?? "Choose your analysis perspectives",
+    4: t.onboarding?.themeTitle ?? "Theme & Display",
   };
 
   const stepDescriptions: Record<Step, string> = {
-    1: "Select at least one industry to personalize your news feed.",
-    2: "Select at least one region to focus your intelligence.",
-    3: "Select at least one lens to shape how stories are analyzed.",
-    4: "Choose your preferred appearance. You can change this anytime in settings.",
+    1: t.onboarding?.industriesDesc ?? "Select at least one industry to personalize your news feed.",
+    2: t.onboarding?.regionsDesc ?? "Select at least one region to focus your intelligence.",
+    3: t.onboarding?.perspectivesDesc ?? "Select at least one lens to shape how stories are analyzed.",
+    4: t.onboarding?.themeDesc ?? "Choose your preferred appearance. You can change this anytime in settings.",
   };
 
   return (
@@ -189,13 +189,13 @@ export function OnboardingOverlay() {
           {/* Step indicator */}
           <div className="flex items-center justify-between mb-6">
             <span className="text-xs font-medium text-stone-400 dark:text-stone-500 uppercase tracking-wider">
-              Step {step} of 4
+              {(t.onboarding?.stepOf ?? "Step {step} of 4").replace("{step}", String(step))}
             </span>
             <button
               onClick={handleSkip}
               className="text-xs text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors"
             >
-              Skip for now
+              {t.onboarding?.skipForNow ?? "Skip for now"}
             </button>
           </div>
 
@@ -226,10 +226,10 @@ export function OnboardingOverlay() {
             {step > 1 ? (
               <button
                 onClick={() => setStep((step - 1) as Step)}
-                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-white transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors"
               >
                 <ArrowLeft className="size-4" />
-                Back
+                {t.onboarding?.back ?? "Back"}
               </button>
             ) : (
               <div />
@@ -241,7 +241,7 @@ export function OnboardingOverlay() {
                 disabled={!canProceed}
                 className="flex items-center gap-1.5 px-6 py-2.5 bg-stone-900 dark:bg-white text-white dark:text-stone-900 text-sm font-medium rounded-lg hover:bg-stone-800 dark:hover:bg-stone-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                Next
+                {t.onboarding?.next ?? "Next"}
                 <ArrowRight className="size-4" />
               </button>
             ) : (
@@ -250,7 +250,7 @@ export function OnboardingOverlay() {
                 disabled={saving}
                 className="flex items-center gap-1.5 px-6 py-2.5 bg-stone-900 dark:bg-white text-white dark:text-stone-900 text-sm font-medium rounded-lg hover:bg-stone-800 dark:hover:bg-stone-200 disabled:opacity-50 transition-colors"
               >
-                {saving ? "Saving..." : "Get Started"}
+                {saving ? (t.onboarding?.saving ?? "Saving...") : (t.onboarding?.getStarted ?? "Get Started")}
                 {!saving && <ArrowRight className="size-4" />}
               </button>
             )}

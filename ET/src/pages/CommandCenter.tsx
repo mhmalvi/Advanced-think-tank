@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, memo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { useStoriesStore } from "@/stores/stories";
@@ -14,6 +14,7 @@ import { useInteractionsStore } from "@/stores/interactions";
 
 // ─── Dateline ───
 function Dateline() {
+  const t = useLocaleStore((s) => s.t);
   const now = new Date();
   const formatted = now.toLocaleDateString("en-GB", {
     weekday: "long",
@@ -25,7 +26,7 @@ function Dateline() {
   return (
     <div className="flex items-center justify-between border-b border-stone-300 dark:border-stone-700 pb-3 mb-6">
       <span className="text-xs tracking-widest uppercase text-stone-500 dark:text-stone-400 font-medium">
-        Intelligence Briefing
+        {t.dashboard.intelligenceBriefing}
       </span>
       <span className="text-xs text-stone-400 dark:text-stone-500">{formatted}</span>
     </div>
@@ -33,8 +34,8 @@ function Dateline() {
 }
 
 // ─── Hero Story (CNN-style attention grab + WSJ typography) ───
-function HeroStory({ story }: { story: Story }) {
-  const locale = useLocaleStore((s) => s.locale);
+const HeroStory = memo(function HeroStory({ story }: { story: Story }) {
+  const { locale, t } = useLocaleStore();
 
   return (
     <Link to={`/canvas/${story.id}`} className="block group mb-10">
@@ -55,9 +56,11 @@ function HeroStory({ story }: { story: Story }) {
         {/* Topic + source meta */}
         <div className="flex items-center gap-3 mb-4">
           <span className="text-[11px] font-semibold uppercase tracking-widest text-[#E30613] dark:text-[#ff1a1a]">
-            {story.cluster_topic || "Analysis"}
+            {story.cluster_topic || t.dashboard.analysis}
           </span>
-          <span className="text-[11px] text-stone-400 dark:text-stone-500">{story.source_count} sources</span>
+          <span className="text-[11px] text-stone-400 dark:text-stone-500">
+            {story.source_count} {t.dashboard.sources}
+          </span>
           <span className="text-[11px] text-stone-400 dark:text-stone-500">
             {formatPublicationDate(story.created_at, locale)}
           </span>
@@ -80,18 +83,18 @@ function HeroStory({ story }: { story: Story }) {
           <div className="flex items-center gap-3">
             <InteractionButtons storyId={story.id} />
             <span className="text-xs text-stone-400 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] flex items-center gap-1 transition-colors">
-              Read full analysis <ArrowRight className="size-3" />
+              {t.dashboard.readFullAnalysis} <ArrowRight className="size-3" />
             </span>
           </div>
         </div>
       </div>
     </Link>
   );
-}
+});
 
 // ─── Lead Story Card (WSJ-style — prominent, text-first with optional thumbnail) ───
-function LeadCard({ story }: { story: Story }) {
-  const locale = useLocaleStore((s) => s.locale);
+const LeadCard = memo(function LeadCard({ story }: { story: Story }) {
+  const { locale, t } = useLocaleStore();
 
   return (
     <Link to={`/canvas/${story.id}`} className="group block">
@@ -101,9 +104,11 @@ function LeadCard({ story }: { story: Story }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-500 dark:text-stone-400">
-                {story.cluster_topic || "Analysis"}
+                {story.cluster_topic || t.dashboard.analysis}
               </span>
-              <span className="text-[10px] text-stone-400 dark:text-stone-500">{story.source_count} sources</span>
+              <span className="text-[10px] text-stone-400 dark:text-stone-500">
+                {story.source_count} {t.dashboard.sources}
+              </span>
             </div>
 
             <h3 className="font-serif text-lg md:text-xl font-semibold text-stone-900 dark:text-white leading-snug mb-2 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] transition-colors">
@@ -144,10 +149,10 @@ function LeadCard({ story }: { story: Story }) {
       </div>
     </Link>
   );
-}
+});
 
 // ─── Compact Story Row (for secondary stories — minimal, scannable) ───
-function CompactRow({ story }: { story: Story }) {
+const CompactRow = memo(function CompactRow({ story }: { story: Story }) {
   const locale = useLocaleStore((s) => s.locale);
 
   return (
@@ -172,20 +177,23 @@ function CompactRow({ story }: { story: Story }) {
       <InteractionButtons storyId={story.id} />
     </Link>
   );
-}
+});
 
 // ─── Section Header (WSJ-style — clean rule + label) ───
 function SectionHeader({ title, count }: { title: string; count: number }) {
+  const t = useLocaleStore((s) => s.t);
   return (
     <div className="flex items-baseline gap-3 border-b-2 border-stone-900 dark:border-stone-200 pb-1.5 mb-1">
       <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-stone-900 dark:text-stone-100">{title}</h2>
-      <span className="text-[10px] text-stone-400 dark:text-stone-500">{count} stories</span>
+      <span className="text-[10px] text-stone-400 dark:text-stone-500">
+        {count} {t.dashboard.stories}
+      </span>
     </div>
   );
 }
 
 // ─── Region Section ───
-function RegionSection({ region, stories }: { region: string; stories: Story[] }) {
+const RegionSection = memo(function RegionSection({ region, stories }: { region: string; stories: Story[] }) {
   if (stories.length === 0) return null;
 
   // First story gets lead treatment, rest are compact rows
@@ -194,7 +202,7 @@ function RegionSection({ region, stories }: { region: string; stories: Story[] }
   return (
     <section className="mb-10">
       <SectionHeader title={region} count={stories.length} />
-      <LeadCard story={lead} />
+      {lead && <LeadCard story={lead} />}
       {rest.length > 0 && (
         <div className="mt-1">
           {rest.map((story) => (
@@ -204,7 +212,7 @@ function RegionSection({ region, stories }: { region: string; stories: Story[] }
       )}
     </section>
   );
-}
+});
 
 // ─── Loading Skeletons ───
 function HeroSkeleton() {
@@ -249,15 +257,14 @@ function SectionSkeleton() {
 
 // ─── Onboarding Banner ───
 function OnboardingBanner() {
+  const t = useLocaleStore((s) => s.t);
   return (
     <Link
       to="/settings/profile"
       className="block border-l-2 border-[#E30613] pl-4 py-3 mb-8 hover:bg-stone-50 dark:hover:bg-stone-900/30 transition-colors"
     >
-      <p className="text-sm font-medium text-stone-800 dark:text-stone-200">Set up your intelligence profile</p>
-      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-        Configure industry interests, geographic focus, and analysis lenses for personalized briefings.
-      </p>
+      <p className="text-sm font-medium text-stone-800 dark:text-stone-200">{t.dashboard.setupProfile}</p>
+      <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{t.dashboard.setupProfileDesc}</p>
     </Link>
   );
 }
@@ -267,6 +274,7 @@ export function CommandCenter() {
   const { stories, featuredStory, storiesLoading, storiesError, fetchStories, storiesByRegion } = useStoriesStore();
   const needsOnboarding = useAuthStore((s) => s.needsOnboarding);
   const fetchInteractions = useInteractionsStore((s) => s.fetchInteractions);
+  const t = useLocaleStore((s) => s.t);
 
   useEffect(() => {
     fetchStories();
@@ -278,12 +286,14 @@ export function CommandCenter() {
     }
   }, [stories, fetchInteractions]);
 
-  const regionGroups = storiesByRegion();
-  const regionOrder = ["Nordics", "EU", "Global", "Asia", "Middle East", "USA"];
-  const sortedRegions = [
-    ...regionOrder.filter((r) => regionGroups[r]),
-    ...Object.keys(regionGroups).filter((r) => !regionOrder.includes(r)),
-  ];
+  const regionGroups = useMemo(() => storiesByRegion(), [storiesByRegion, stories]);
+  const sortedRegions = useMemo(() => {
+    const regionOrder = ["Nordics", "EU", "Global", "Asia", "Middle East", "USA"];
+    return [
+      ...regionOrder.filter((r) => regionGroups[r]),
+      ...Object.keys(regionGroups).filter((r) => !regionOrder.includes(r)),
+    ];
+  }, [regionGroups]);
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -314,7 +324,7 @@ export function CommandCenter() {
                 onClick={fetchStories}
                 className="px-5 py-2.5 text-sm font-medium border border-stone-300 dark:border-stone-700 rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
               >
-                Retry
+                {t.common.retry}
               </button>
             </div>
           )}
@@ -322,10 +332,10 @@ export function CommandCenter() {
           {/* Empty state */}
           {!storiesLoading && !storiesError && stories.length === 0 && (
             <div className="text-center py-20">
-              <p className="font-serif text-xl text-stone-400 dark:text-stone-500">No intelligence briefs available.</p>
-              <p className="text-sm text-stone-400 dark:text-stone-600 mt-2">
-                The synthesis pipeline runs every 4 hours. Check back soon.
+              <p className="font-serif text-xl text-stone-400 dark:text-stone-500">
+                {t.dashboard.noIntelligenceBriefs}
               </p>
+              <p className="text-sm text-stone-400 dark:text-stone-600 mt-2">{t.dashboard.pipelineMessage}</p>
             </div>
           )}
 
@@ -336,7 +346,7 @@ export function CommandCenter() {
           {sortedRegions.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12">
               {sortedRegions.map((region) => (
-                <RegionSection key={region} region={region} stories={regionGroups[region]} />
+                <RegionSection key={region} region={region} stories={regionGroups[region] ?? []} />
               ))}
             </div>
           )}

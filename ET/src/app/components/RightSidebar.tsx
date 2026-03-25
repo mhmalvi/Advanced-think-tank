@@ -64,21 +64,21 @@ export function RightSidebar({ collapsed = false }: RightSidebarProps) {
         <button
           onClick={toggleRightSidebar}
           className="p-2 rounded hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors mb-2"
-          title="Expand sidebar"
+          title={t.navLabels?.expandSidebar ?? "Expand sidebar"}
         >
           <PanelRightOpen className="size-4" />
         </button>
 
         <div
           className={`p-2 rounded transition-colors ${isHealthy ? "text-green-600" : "text-amber-500"}`}
-          title={isHealthy ? "System healthy" : "System degraded"}
+          title={isHealthy ? t.sidebar.healthy : t.sidebar.degraded}
         >
           <Activity className="size-4" />
         </div>
-        <div className="p-2 rounded text-stone-500" title="Latest Articles">
+        <div className="p-2 rounded text-stone-500" title={t.sidebar.latestArticles}>
           <Newspaper className="size-4" />
         </div>
-        <div className="p-2 rounded text-stone-500" title="Top Sources">
+        <div className="p-2 rounded text-stone-500" title={t.sidebar.topSources}>
           <TrendingUp className="size-4" />
         </div>
       </aside>
@@ -92,13 +92,17 @@ export function RightSidebar({ collapsed = false }: RightSidebarProps) {
       <div className="p-3 border-b border-stone-200 dark:border-stone-800">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="font-bold text-black dark:text-white tracking-tight text-sm">Insights</h2>
-            <p className="text-[10px] text-[#E30613] font-medium mt-0.5">System & intelligence</p>
+            <h2 className="font-bold text-black dark:text-white tracking-tight text-sm">
+              {t.navLabels?.insights ?? "Insights"}
+            </h2>
+            <p className="text-[10px] text-[#E30613] font-medium mt-0.5">
+              {t.navLabels?.systemIntelligence ?? "System & intelligence"}
+            </p>
           </div>
           <button
             onClick={toggleRightSidebar}
             className="p-1.5 rounded hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors mt-1"
-            title="Collapse sidebar"
+            title={t.navLabels?.collapseSidebar ?? "Collapse sidebar"}
           >
             <PanelRightClose className="size-4" />
           </button>

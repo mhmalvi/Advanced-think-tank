@@ -1,5 +1,6 @@
 import { ThumbsUp, ThumbsDown, Bookmark } from "lucide-react";
 import { useInteractionsStore } from "@/stores/interactions";
+import { useLocaleStore } from "@/stores/locale";
 import { cn } from "@/lib/utils";
 
 interface InteractionButtonsProps {
@@ -9,6 +10,7 @@ interface InteractionButtonsProps {
 }
 
 export function InteractionButtons({ storyId, size = "sm", showBookmark = true }: InteractionButtonsProps) {
+  const t = useLocaleStore((s) => s.t);
   const interaction = useInteractionsStore((s) => s.getInteraction(storyId));
   const isBookmarked = useInteractionsStore((s) => s.isBookmarked(storyId));
   const toggleLike = useInteractionsStore((s) => s.toggleLike);
@@ -28,7 +30,7 @@ export function InteractionButtons({ storyId, size = "sm", showBookmark = true }
             ? "text-green-500 bg-green-500/10"
             : "text-stone-400 hover:text-green-500 hover:bg-green-500/10",
         )}
-        title="Like"
+        title={t.common.helpful}
       >
         <ThumbsUp className={cn(iconSize, interaction === "like" && "fill-current")} />
       </button>
@@ -40,7 +42,7 @@ export function InteractionButtons({ storyId, size = "sm", showBookmark = true }
             ? "text-red-500 bg-red-500/10"
             : "text-stone-400 hover:text-red-500 hover:bg-red-500/10",
         )}
-        title="Dislike"
+        title={t.common.notHelpful}
       >
         <ThumbsDown className={cn(iconSize, interaction === "dislike" && "fill-current")} />
       </button>
@@ -53,7 +55,7 @@ export function InteractionButtons({ storyId, size = "sm", showBookmark = true }
               ? "text-amber-500 bg-amber-500/10"
               : "text-stone-400 hover:text-amber-500 hover:bg-amber-500/10",
           )}
-          title="Bookmark"
+          title={t.common.save}
         >
           <Bookmark className={cn(iconSize, isBookmarked && "fill-current")} />
         </button>

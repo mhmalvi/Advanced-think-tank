@@ -137,7 +137,7 @@ export function SearchBar() {
               <button
                 key={i}
                 onClick={() => handleRecentClick(text)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors text-left"
               >
                 <Clock className="size-3 text-stone-400 shrink-0" />
                 <span className="truncate">{text}</span>

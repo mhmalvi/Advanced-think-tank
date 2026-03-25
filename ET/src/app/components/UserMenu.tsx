@@ -71,7 +71,7 @@ export function UserMenu() {
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-2 py-1 px-1.5 rounded-lg transition-all duration-150 ${
-          open ? "bg-stone-100 dark:bg-stone-800" : "hover:bg-stone-50 dark:hover:bg-stone-800/50"
+          open ? "bg-stone-100 dark:bg-stone-800" : "hover:bg-stone-50 dark:hover:bg-stone-800"
         }`}
         title="User menu"
       >
@@ -190,7 +190,7 @@ export function UserMenu() {
             <Link
               to="/settings"
               onClick={() => setOpen(false)}
-              className="w-full text-left px-3 py-2 text-xs text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors flex items-center gap-2.5"
+              className="w-full text-left px-3 py-2 text-xs text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors flex items-center gap-2.5"
             >
               <Settings className="size-3.5 text-stone-400" />
               {t.common.settings}
