@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { ExternalLink, ChevronUp, ChevronDown, Search, Database } from "lucide-react";
+import { ExternalLink, ChevronUp, ChevronDown, Search, Database, ToggleLeft, ToggleRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatPublicationDate } from "@/lib/utils";
 import { useLocaleStore } from "@/stores/locale";
+import { useSettingsStore } from "@/stores/settings";
 
 type ArticleRow = {
   id: string;
@@ -35,6 +36,10 @@ export function SourcesPage() {
   const [sourceFilter, setSourceFilter] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
   const locale = useLocaleStore((s) => s.locale);
+  const t = useLocaleStore((s) => s.t);
+  const disabledSources = useSettingsStore((s) => s.disabledSources);
+  const toggleSource = useSettingsStore((s) => s.toggleSource);
+  const [showSourceToggles, setShowSourceToggles] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Debounce search input by 400ms
@@ -140,7 +145,74 @@ export function SourcesPage() {
             <Database className="size-5 text-stone-400" />
             <h1 className="text-lg font-bold text-stone-900 dark:text-white">Sources</h1>
             <span className="text-xs text-stone-400">{totalCount.toLocaleString()} articles</span>
+            <button
+              onClick={() => setShowSourceToggles(!showSourceToggles)}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-stone-200 dark:border-stone-700 rounded-md hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            >
+              {showSourceToggles ? <ToggleRight className="size-3.5" /> : <ToggleLeft className="size-3.5" />}
+              {t.profile.sourceToggles}
+            </button>
           </div>
+
+          {/* Source Toggle Panel */}
+          {showSourceToggles && distinctSources.length > 0 && (
+            <div className="mb-6 p-4 rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900/50">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-medium text-stone-900 dark:text-white">{t.profile.sourceToggles}</h3>
+                  <p className="text-xs text-stone-500 mt-0.5">{t.profile.sourceTogglesDesc}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      // Enable all: remove all from disabledSources
+                      disabledSources.forEach((s) => toggleSource(s));
+                    }}
+                    className="px-2 py-1 text-[10px] font-medium border border-stone-200 dark:border-stone-700 rounded hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+                  >
+                    {t.profile.enableAll}
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Disable all: add all not already disabled
+                      distinctSources.forEach((s) => {
+                        if (!disabledSources.includes(s)) toggleSource(s);
+                      });
+                    }}
+                    className="px-2 py-1 text-[10px] font-medium border border-stone-200 dark:border-stone-700 rounded hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+                  >
+                    {t.profile.disableAll}
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                {distinctSources.map((sourceName) => {
+                  const isEnabled = !disabledSources.includes(sourceName);
+                  return (
+                    <button
+                      key={sourceName}
+                      onClick={() => toggleSource(sourceName)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
+                        isEnabled
+                          ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300"
+                          : "bg-stone-50 dark:bg-stone-900 border-stone-200 dark:border-stone-700 text-stone-400 dark:text-stone-500 line-through"
+                      }`}
+                    >
+                      <span
+                        className={`size-2 rounded-full shrink-0 ${isEnabled ? "bg-green-500" : "bg-stone-300 dark:bg-stone-600"}`}
+                      />
+                      <span className="truncate">{sourceName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {disabledSources.length > 0 && (
+                <p className="mt-3 text-[10px] text-stone-400">
+                  {disabledSources.length} source{disabledSources.length !== 1 ? "s" : ""} disabled
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-4">

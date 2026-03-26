@@ -1,4 +1,4 @@
-import { useEffect, useMemo, memo } from "react";
+import { useEffect, useMemo, useCallback, memo } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { useStoriesStore } from "@/stores/stories";
@@ -10,7 +10,9 @@ import { StoryLabels } from "@/app/components/StoryLabel";
 import type { Story } from "@/types/database";
 import { SearchBar } from "@/app/components/SearchBar";
 import { InteractionButtons } from "@/app/components/InteractionButtons";
+import { SourceCarousel } from "@/app/components/SourceCarousel";
 import { useInteractionsStore } from "@/stores/interactions";
+import { useSettingsStore } from "@/stores/settings";
 
 // ─── Dateline ───
 function Dateline() {
@@ -79,7 +81,10 @@ const HeroStory = memo(function HeroStory({ story }: { story: Story }) {
         )}
 
         <div className="flex items-center justify-between">
-          <StoryLabels labels={story.labels} max={5} />
+          <div className="flex items-center gap-3">
+            <StoryLabels labels={story.labels} max={5} />
+            <SourceCarousel story={story} max={5} />
+          </div>
           <div className="flex items-center gap-3">
             <InteractionButtons storyId={story.id} />
             <span className="text-xs text-stone-400 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] flex items-center gap-1 transition-colors">
@@ -122,7 +127,10 @@ const LeadCard = memo(function LeadCard({ story }: { story: Story }) {
             )}
 
             <div className="flex items-center justify-between">
-              <StoryLabels labels={story.labels} max={3} />
+              <div className="flex items-center gap-2">
+                <StoryLabels labels={story.labels} max={3} />
+                <SourceCarousel story={story} max={4} />
+              </div>
               <div className="flex items-center gap-2">
                 <InteractionButtons storyId={story.id} />
                 <span className="text-[11px] text-stone-400 dark:text-stone-500">
@@ -275,6 +283,7 @@ export function CommandCenter() {
   const needsOnboarding = useAuthStore((s) => s.needsOnboarding);
   const fetchInteractions = useInteractionsStore((s) => s.fetchInteractions);
   const t = useLocaleStore((s) => s.t);
+  const disabledSources = useSettingsStore((s) => s.disabledSources);
 
   useEffect(() => {
     fetchStories();
@@ -286,7 +295,33 @@ export function CommandCenter() {
     }
   }, [stories, fetchInteractions]);
 
-  const regionGroups = useMemo(() => storiesByRegion(), [storiesByRegion, stories]);
+  // Filter out stories whose sources are all disabled
+  const isStoryVisible = useCallback(
+    (story: Story) => {
+      if (disabledSources.length === 0) return true;
+      const storySourceLabels = story.labels.filter((l) => l.type === "source").map((l) => l.text);
+      if (storySourceLabels.length === 0) return true; // No source labels = always visible
+      return storySourceLabels.some((s) => !disabledSources.includes(s));
+    },
+    [disabledSources],
+  );
+
+  const filteredFeatured = useMemo(
+    () => (featuredStory && isStoryVisible(featuredStory) ? featuredStory : null),
+    [featuredStory, isStoryVisible],
+  );
+
+  const regionGroups = useMemo(() => {
+    const groups = storiesByRegion();
+    if (disabledSources.length === 0) return groups;
+    const filtered: Record<string, Story[]> = {};
+    for (const [region, regionStories] of Object.entries(groups)) {
+      const visible = regionStories.filter(isStoryVisible);
+      if (visible.length > 0) filtered[region] = visible;
+    }
+    return filtered;
+  }, [storiesByRegion, stories, disabledSources, isStoryVisible]);
+
   const sortedRegions = useMemo(() => {
     const regionOrder = ["Nordics", "EU", "Global", "Asia", "Middle East", "USA"];
     return [
@@ -340,7 +375,7 @@ export function CommandCenter() {
           )}
 
           {/* Hero story — CNN-style grab */}
-          {featuredStory && <HeroStory story={featuredStory} />}
+          {filteredFeatured && <HeroStory story={filteredFeatured} />}
 
           {/* Regional sections — WSJ-style structured grid */}
           {sortedRegions.length > 0 && (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Send,
@@ -11,7 +11,6 @@ import {
   MessageSquare,
   FileText,
   Newspaper,
-  ExternalLink,
 } from "lucide-react";
 import DOMPurify from "dompurify";
 import { useCanvasStore } from "@/stores/canvas";
@@ -21,8 +20,8 @@ import { StoryLabels } from "@/app/components/StoryLabel";
 import { DanishImpactCallout } from "@/app/components/DanishImpactCallout";
 import { StoryRenderer } from "@/app/components/StoryRenderer";
 import { StoryTimeline } from "@/app/components/StoryTimeline";
+import { SourceCarousel } from "@/app/components/SourceCarousel";
 import { canvasChatMessage } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 import { formatPublicationDate } from "@/lib/utils";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { toast } from "sonner";
@@ -663,19 +662,17 @@ function StoryPanel() {
             <p className="text-base text-stone-500 dark:text-stone-400 mb-4 leading-relaxed">{currentStory.synopsis}</p>
           )}
 
-          <div className="mb-6">
+          <div className="flex items-center justify-between mb-6">
             <StoryLabels labels={currentStory.labels} max={10} />
+            <SourceCarousel story={currentStory} />
           </div>
 
           <DanishImpactCallout story={currentStory} />
 
           <StoryTimeline entries={currentStory.timeline_entries} locale={locale} />
 
-          {/* Rich story content */}
-          <StoryRenderer content={currentContent ?? ""} />
-
-          {/* Source articles with links */}
-          <SourceArticles articleIds={currentStory.source_article_ids ?? []} />
+          {/* Rich story content with citations */}
+          <StoryRenderer content={currentContent ?? ""} sourceArticleIds={currentStory.source_article_ids ?? []} />
         </div>
       </div>
     </div>
@@ -683,71 +680,6 @@ function StoryPanel() {
 }
 
 // ─── Source Articles ───
-type SourceArticle = { id: string; title: string; url: string; published_at: string; source_name: string };
-
-function SourceArticles({ articleIds }: { articleIds: string[] }) {
-  const [articles, setArticles] = useState<SourceArticle[]>([]);
-  const { locale, t } = useLocaleStore();
-
-  const idsKey = articleIds.join(",");
-  const stableIds = useMemo(() => articleIds, [idsKey]);
-
-  useEffect(() => {
-    if (stableIds.length === 0) return;
-    supabase
-      .from("articles")
-      .select("id, title, url, published_at, source:sources(name)")
-      .in("id", stableIds)
-      .order("published_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) {
-          setArticles(
-            data.map((a: Record<string, unknown>) => ({
-              id: a.id as string,
-              title: a.title as string,
-              url: a.url as string,
-              published_at: a.published_at as string,
-              source_name: (a.source as { name: string } | null)?.name ?? "",
-            })),
-          );
-        }
-      });
-  }, [stableIds]);
-
-  if (articles.length === 0) return null;
-
-  return (
-    <div className="mt-10 pt-6 border-t-2 border-stone-200 dark:border-stone-800">
-      <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400 mb-4">
-        {t.canvas.sourcesCount} ({articles.length})
-      </h2>
-      <div className="space-y-2">
-        {articles.map((article) => (
-          <a
-            key={article.id}
-            href={article.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-start gap-3 p-3 rounded-lg border border-stone-200 dark:border-stone-800 hover:border-stone-400 dark:hover:border-stone-600 bg-stone-50 dark:bg-stone-900/50 transition-colors group"
-          >
-            <ExternalLink className="size-3.5 mt-0.5 shrink-0 text-stone-400 group-hover:text-[#E30613] transition-colors" />
-            <div className="min-w-0 flex-1">
-              <span className="text-sm font-medium text-stone-800 dark:text-stone-200 group-hover:text-[#E30613] dark:group-hover:text-[#ff1a1a] transition-colors line-clamp-2">
-                {article.title}
-              </span>
-              <div className="flex items-center gap-2 mt-1 text-[11px] text-stone-400">
-                <span className="font-medium">{article.source_name}</span>
-                <span>&bull;</span>
-                <span>{formatPublicationDate(article.published_at, locale)}</span>
-              </div>
-            </div>
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Loading State ───
 function CanvasLoading() {
   return (

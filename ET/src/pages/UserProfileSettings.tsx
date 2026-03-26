@@ -1,8 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { Camera, X, Upload, CheckCircle2 } from "lucide-react";
+import { Camera, X, Upload, CheckCircle2, Bell, BellOff, Bookmark, Trash2 } from "lucide-react";
 import { useLocaleStore } from "@/stores/locale";
+import { useSettingsStore } from "@/stores/settings";
 
 function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number) {
   return centerCrop(makeAspectCrop({ unit: "%", width: 90 }, aspect, mediaWidth, mediaHeight), mediaWidth, mediaHeight);
@@ -127,10 +128,78 @@ export function UserProfileSettings() {
 
   const { t } = useLocaleStore();
 
-  const [topics, setTopics] = useState<string[]>(["Macroeconomics", "Geopolitics"]);
-  const [areas, setAreas] = useState<string[]>(["China", "USA", "Europe"]);
-  const [industries, setIndustries] = useState<string[]>(["Green Energy", "Technology"]);
-  const [sources, setSources] = useState<string[]>(["Financial Times", "Handelsblatt"]);
+  // Wire to settings store for persistence
+  const settingsTopics = useSettingsStore((s) => s.topics);
+  const addTopic = useSettingsStore((s) => s.addTopic);
+  const removeTopic = useSettingsStore((s) => s.removeTopic);
+  const settingsGeo = useSettingsStore((s) => s.geographies);
+  const addGeography = useSettingsStore((s) => s.addGeography);
+  const removeGeography = useSettingsStore((s) => s.removeGeography);
+  const settingsIndustries = useSettingsStore((s) => s.industries);
+  const addIndustry = useSettingsStore((s) => s.addIndustry);
+  const removeIndustry = useSettingsStore((s) => s.removeIndustry);
+  const settingsSources = useSettingsStore((s) => s.preferredSources);
+  const addPreferredSource = useSettingsStore((s) => s.addPreferredSource);
+  const removePreferredSource = useSettingsStore((s) => s.removePreferredSource);
+
+  // Notification preferences
+  const notificationsEnabled = useSettingsStore((s) => s.notificationsEnabled);
+  const notifyBreakingNews = useSettingsStore((s) => s.notifyBreakingNews);
+  const notifyWeeklySummary = useSettingsStore((s) => s.notifyWeeklySummary);
+  const toggleNotifications = useSettingsStore((s) => s.toggleNotifications);
+  const toggleBreakingNews = useSettingsStore((s) => s.toggleBreakingNews);
+  const toggleWeeklySummary = useSettingsStore((s) => s.toggleWeeklySummary);
+
+  // Saved prompts
+  const savedPrompts = useSettingsStore((s) => s.savedPrompts);
+  const addSavedPrompt = useSettingsStore((s) => s.addSavedPrompt);
+  const removeSavedPrompt = useSettingsStore((s) => s.removeSavedPrompt);
+  const [newPrompt, setNewPrompt] = useState("");
+
+  // Adapter: TagInput expects setTags(string[]), but we use add/remove
+  const setTopics = useCallback(
+    (updater: React.SetStateAction<string[]>) => {
+      const next = typeof updater === "function" ? updater(settingsTopics) : updater;
+      const added = next.filter((t) => !settingsTopics.includes(t));
+      const removed = settingsTopics.filter((t) => !next.includes(t));
+      added.forEach(addTopic);
+      removed.forEach(removeTopic);
+    },
+    [settingsTopics, addTopic, removeTopic],
+  );
+
+  const setAreas = useCallback(
+    (updater: React.SetStateAction<string[]>) => {
+      const next = typeof updater === "function" ? updater(settingsGeo) : updater;
+      const added = next.filter((g) => !settingsGeo.includes(g));
+      const removed = settingsGeo.filter((g) => !next.includes(g));
+      added.forEach(addGeography);
+      removed.forEach(removeGeography);
+    },
+    [settingsGeo, addGeography, removeGeography],
+  );
+
+  const setIndustries = useCallback(
+    (updater: React.SetStateAction<string[]>) => {
+      const next = typeof updater === "function" ? updater(settingsIndustries) : updater;
+      const added = next.filter((i) => !settingsIndustries.includes(i));
+      const removed = settingsIndustries.filter((i) => !next.includes(i));
+      added.forEach(addIndustry);
+      removed.forEach(removeIndustry);
+    },
+    [settingsIndustries, addIndustry, removeIndustry],
+  );
+
+  const setSources = useCallback(
+    (updater: React.SetStateAction<string[]>) => {
+      const next = typeof updater === "function" ? updater(settingsSources) : updater;
+      const added = next.filter((s) => !settingsSources.includes(s));
+      const removed = settingsSources.filter((s) => !next.includes(s));
+      added.forEach(addPreferredSource);
+      removed.forEach(removePreferredSource);
+    },
+    [settingsSources, addPreferredSource, removePreferredSource],
+  );
 
   function onSelectFile(e: React.ChangeEvent<HTMLInputElement>) {
     if (e.target.files && e.target.files.length > 0) {
@@ -269,31 +338,151 @@ export function UserProfileSettings() {
           <TagInput
             label={t.profile.topics}
             description={t.profile.topicsDesc}
-            tags={topics}
+            tags={settingsTopics}
             setTags={setTopics}
             placeholder={t.profile.addTag}
           />
           <TagInput
             label={t.profile.areas}
             description={t.profile.areasDesc}
-            tags={areas}
+            tags={settingsGeo}
             setTags={setAreas}
             placeholder={t.profile.addTag}
           />
           <TagInput
             label={t.profile.industries}
             description={t.profile.industriesDesc}
-            tags={industries}
+            tags={settingsIndustries}
             setTags={setIndustries}
             placeholder={t.profile.addTag}
           />
           <TagInput
             label={t.profile.newsSources}
             description={t.profile.newsSourcesDesc}
-            tags={sources}
+            tags={settingsSources}
             setTags={setSources}
             placeholder={t.profile.addTag}
           />
+        </div>
+      </section>
+
+      {/* Saved Prompts */}
+      <section className="space-y-4 pt-6 border-t border-stone-200 dark:border-stone-800">
+        <div>
+          <h3 className="text-base font-medium text-stone-900 dark:text-stone-100 flex items-center gap-2">
+            <Bookmark className="size-4" />
+            {t.profile.savedPrompts}
+          </h3>
+          <p className="text-sm text-stone-500 mb-4">{t.profile.savedPromptsDesc}</p>
+        </div>
+
+        <div className="space-y-2">
+          {savedPrompts.length === 0 && (
+            <p className="text-sm text-stone-400 dark:text-stone-500 italic">{t.profile.noSavedPrompts}</p>
+          )}
+          {savedPrompts.map((prompt) => (
+            <div
+              key={prompt}
+              className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700"
+            >
+              <span className="text-sm text-stone-700 dark:text-stone-300 truncate">{prompt}</span>
+              <button
+                onClick={() => removeSavedPrompt(prompt)}
+                className="shrink-0 text-stone-400 hover:text-red-500 transition-colors"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newPrompt}
+            onChange={(e) => setNewPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && newPrompt.trim()) {
+                addSavedPrompt(newPrompt);
+                setNewPrompt("");
+              }
+            }}
+            placeholder={t.profile.addPromptPlaceholder}
+            className="flex-1 px-3 py-2 bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-stone-500 focus:border-transparent dark:text-white"
+          />
+          <button
+            onClick={() => {
+              if (newPrompt.trim()) {
+                addSavedPrompt(newPrompt);
+                setNewPrompt("");
+              }
+            }}
+            className="px-4 py-2 text-sm font-medium border border-stone-300 dark:border-stone-600 rounded-md hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+          >
+            {t.common.save}
+          </button>
+        </div>
+      </section>
+
+      {/* Notification Preferences */}
+      <section className="space-y-4 pt-6 border-t border-stone-200 dark:border-stone-800">
+        <div>
+          <h3 className="text-base font-medium text-stone-900 dark:text-stone-100 flex items-center gap-2">
+            {notificationsEnabled ? <Bell className="size-4" /> : <BellOff className="size-4" />}
+            {t.profile.notifications}
+          </h3>
+          <p className="text-sm text-stone-500 mb-4">{t.profile.notificationsDesc}</p>
+        </div>
+
+        <div className="space-y-3">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div>
+              <span className="text-sm font-medium text-stone-800 dark:text-stone-200">
+                {t.profile.enableNotifications}
+              </span>
+              <p className="text-xs text-stone-500">{t.profile.enableNotificationsDesc}</p>
+            </div>
+            <button
+              onClick={toggleNotifications}
+              className={`relative w-11 h-6 rounded-full transition-colors ${notificationsEnabled ? "bg-green-500" : "bg-stone-300 dark:bg-stone-600"}`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${notificationsEnabled ? "translate-x-5" : ""}`}
+              />
+            </button>
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer">
+            <div>
+              <span className="text-sm font-medium text-stone-800 dark:text-stone-200">{t.profile.breakingNews}</span>
+              <p className="text-xs text-stone-500">{t.profile.breakingNewsDesc}</p>
+            </div>
+            <button
+              onClick={toggleBreakingNews}
+              disabled={!notificationsEnabled}
+              className={`relative w-11 h-6 rounded-full transition-colors ${notifyBreakingNews && notificationsEnabled ? "bg-green-500" : "bg-stone-300 dark:bg-stone-600"} ${!notificationsEnabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${notifyBreakingNews && notificationsEnabled ? "translate-x-5" : ""}`}
+              />
+            </button>
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer">
+            <div>
+              <span className="text-sm font-medium text-stone-800 dark:text-stone-200">{t.profile.weeklySummary}</span>
+              <p className="text-xs text-stone-500">{t.profile.weeklySummaryDesc}</p>
+            </div>
+            <button
+              onClick={toggleWeeklySummary}
+              disabled={!notificationsEnabled}
+              className={`relative w-11 h-6 rounded-full transition-colors ${notifyWeeklySummary && notificationsEnabled ? "bg-green-500" : "bg-stone-300 dark:bg-stone-600"} ${!notificationsEnabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${notifyWeeklySummary && notificationsEnabled ? "translate-x-5" : ""}`}
+              />
+            </button>
+          </label>
         </div>
       </section>
 

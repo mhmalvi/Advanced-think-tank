@@ -1,4 +1,4 @@
-import { useState, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -14,8 +14,9 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ChevronDown, ChevronRight, Quote } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronDown, ChevronRight, Quote, ExternalLink } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { useSettingsStore } from "@/stores/settings";
 
 // ─── Pre-process custom tags before Markdown rendering ───
 
@@ -105,9 +106,31 @@ function parseStoryContent(raw: string): ParsedBlock[] {
   return blocks;
 }
 
+// ─── Citation types ───
+
+type CitationMeta = {
+  index: number;
+  title: string;
+  url: string;
+  sourceName: string;
+};
+
 // ─── Custom Markdown components ───
 
-function MarkdownBlock({ content }: { content: string }) {
+function processCitations(content: string, citations: CitationMeta[]): string {
+  if (citations.length === 0) return content;
+  // Replace [N] patterns with markdown links styled as superscript
+  return content.replace(/\[(\d+)\]/g, (match, num) => {
+    const idx = parseInt(num, 10);
+    const cite = citations.find((c) => c.index === idx);
+    if (!cite) return match;
+    return `[<sup>${idx}</sup>](${cite.url} "${cite.sourceName}: ${cite.title.slice(0, 80)}")`;
+  });
+}
+
+function MarkdownBlock({ content, citations = [] }: { content: string; citations?: CitationMeta[] }) {
+  const showCitations = useSettingsStore((s) => s.showCitationBrackets);
+  const processed = showCitations ? processCitations(content, citations) : content;
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -147,7 +170,7 @@ function MarkdownBlock({ content }: { content: string }) {
         ),
       }}
     >
-      {content}
+      {processed}
     </ReactMarkdown>
   );
 }
@@ -272,17 +295,94 @@ function StatCalloutBlock({ value, label, source }: { value: string; label: stri
   );
 }
 
+// ─── Citation Footnotes ───
+
+function CitationFootnotes({ citations }: { citations: CitationMeta[] }) {
+  if (citations.length === 0) return null;
+
+  return (
+    <div className="mt-8 pt-4 border-t border-stone-200 dark:border-stone-800">
+      <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-stone-500 dark:text-stone-400 mb-3">Sources</h3>
+      <ol className="space-y-1.5">
+        {citations.map((cite) => (
+          <li key={cite.index} id={`cite-${cite.index}`} className="flex items-start gap-2 text-xs">
+            <span className="shrink-0 text-[10px] font-bold text-stone-400 dark:text-stone-500 mt-0.5 w-4 text-right">
+              [{cite.index}]
+            </span>
+            <a
+              href={cite.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-stone-600 dark:text-stone-300 hover:text-[#E30613] dark:hover:text-[#ff4444] transition-colors group flex items-start gap-1"
+            >
+              <span>
+                <span className="font-medium">{cite.sourceName}</span>
+                {cite.title && <span className="text-stone-400 dark:text-stone-500"> — {cite.title}</span>}
+              </span>
+              <ExternalLink className="size-3 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </a>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+// ─── Citation data hook ───
+
+function useCitations(sourceArticleIds: string[]): CitationMeta[] {
+  const [citations, setCitations] = useState<CitationMeta[]>([]);
+
+  useEffect(() => {
+    if (sourceArticleIds.length === 0) {
+      setCitations([]);
+      return;
+    }
+
+    supabase
+      .from("articles")
+      .select("id, title, url, source_name")
+      .in("id", sourceArticleIds.slice(0, 20))
+      .then(({ data }) => {
+        if (!data) return;
+        // Map articles to citation indices matching source_article_ids order
+        const mapped: CitationMeta[] = sourceArticleIds
+          .map((id, i) => {
+            const article = data.find((a) => a.id === id);
+            if (!article) return null;
+            return {
+              index: i + 1,
+              title: article.title,
+              url: article.url,
+              sourceName: article.source_name ?? "Unknown",
+            };
+          })
+          .filter((c): c is CitationMeta => c !== null);
+        setCitations(mapped);
+      });
+  }, [sourceArticleIds.join(",")]);
+
+  return citations;
+}
+
 // ─── Main Renderer ───
 
-export function StoryRenderer({ content }: { content: string }) {
+interface StoryRendererProps {
+  content: string;
+  sourceArticleIds?: string[];
+}
+
+export function StoryRenderer({ content, sourceArticleIds = [] }: StoryRendererProps) {
   const blocks = useMemo(() => parseStoryContent(content), [content]);
+  const citations = useCitations(sourceArticleIds);
+  const showCitations = useSettingsStore((s) => s.showCitationBrackets);
 
   return (
     <article className="max-w-none">
       {blocks.map((block, i) => {
         switch (block.type) {
           case "markdown":
-            return <MarkdownBlock key={i} content={block.content} />;
+            return <MarkdownBlock key={i} content={block.content} citations={citations} />;
           case "background":
             return <BackgroundSection key={i} content={block.content} />;
           case "pull_quote":
@@ -295,6 +395,7 @@ export function StoryRenderer({ content }: { content: string }) {
             return null;
         }
       })}
+      {showCitations && <CitationFootnotes citations={citations} />}
     </article>
   );
 }
