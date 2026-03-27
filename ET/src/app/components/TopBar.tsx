@@ -8,7 +8,7 @@ export function TopBar() {
         to="/dashboard"
         className="relative font-bold text-sm text-stone-900 dark:text-white tracking-tight hover:text-[#E30613] transition-colors group"
       >
-        Jægeren
+        Advanced Think Tank
         <span className="absolute -bottom-0.5 left-0 h-[2px] w-full bg-[#E30613] origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
       </Link>
       <UserMenu />

@@ -1,15 +1,15 @@
-# Jaegeren Platform — Full Infrastructure & App Audit Report
+# Advanced Think Tank — Full Infrastructure & App Audit Report
 
 **Date:** 2026-03-06
 **Server:** Hetzner VPS (4 CPU, 8GB RAM, 150GB SSD) — Ubuntu 24.04
 **IP:** 46.224.81.90
-**Domains:** et.20thousandleagues.com, n8n.20thousandleagues.com
+**Domains:** et.advanced-think-tank.com, n8n.advanced-think-tank.com
 
 ---
 
 ## Executive Summary
 
-Jaegeren is a geo-economic intelligence platform that ingests news from 18 RSS sources, indexes them in Pinecone vector search, and provides AI-powered analysis via Claude. The platform is **functional but has significant gaps** that prevent it from being production-ready.
+Advanced Think Tank is a geo-economic intelligence platform that ingests news from 18 RSS sources, indexes them in Pinecone vector search, and provides AI-powered analysis via Claude. The platform is **functional but has significant gaps** that prevent it from being production-ready.
 
 ### Overall Health Score: 5/10
 
@@ -40,15 +40,15 @@ Jaegeren is a geo-economic intelligence platform that ingests news from 18 RSS s
 |-----------|-------|--------|-------|
 | repo-app-1 | repo-app | Healthy | 0.0.0.0:3000→80 |
 | repo-n8n-1 | n8nio/n8n:2.10.4 | Healthy | 127.0.0.1:5678→5678 |
-| jaegeren-app | jaegeren-app | **Created (stale)** | — |
-| jaegeren-n8n | n8nio/n8n:latest | **Created (stale)** | — |
+| advanced-think-tank-app | advanced-think-tank-app | **Created (stale)** | — |
+| advanced-think-tank-n8n | n8nio/n8n:latest | **Created (stale)** | — |
 
 **Issues:**
-- **2 stale containers** (`jaegeren-app`, `jaegeren-n8n`) from old compose file at `/opt/jaegeren/docker-compose.yml` — never started, consuming metadata
+- **2 stale containers** (`advanced-think-tank-app`, `advanced-think-tank-n8n`) from old compose file at `/opt/advanced-think-tank/docker-compose.yml` — never started, consuming metadata
 - **2 stale Docker images** (`test-build`, `test-env`) from debugging — 488MB wasted
 - **Old n8n image** (v1.84.1) still present — 1.24GB wasted
 - **5.5GB reclaimable images** and **3.4GB build cache** — total ~9GB recoverable
-- **Duplicate compose files**: `/opt/jaegeren/docker-compose.yml` (old, has hardcoded secrets) AND `/opt/jaegeren/repo/docker-compose.yml` (active) — confusing
+- **Duplicate compose files**: `/opt/advanced-think-tank/docker-compose.yml` (old, has hardcoded secrets) AND `/opt/advanced-think-tank/repo/docker-compose.yml` (active) — confusing
 
 ### Networking
 - Port 3000 (app) exposed to **all interfaces** (0.0.0.0) — should be behind reverse proxy only
@@ -56,10 +56,10 @@ Jaegeren is a geo-economic intelligence platform that ingests news from 18 RSS s
 - Host nginx (ports 80/443) proxies to both
 
 ### SSL/TLS — CRITICAL
-- **Self-signed certificates** on both `et.20thousandleagues.com` and `n8n.20thousandleagues.com`
+- **Self-signed certificates** on both `et.advanced-think-tank.com` and `n8n.advanced-think-tank.com`
 - Certbot is installed (timer active) but **no Let's Encrypt certs exist**
 - Browser will show security warnings to users
-- **Action:** Run `sudo certbot --nginx -d et.20thousandleagues.com -d n8n.20thousandleagues.com`
+- **Action:** Run `sudo certbot --nginx -d et.advanced-think-tank.com -d n8n.advanced-think-tank.com`
 
 ### Server Hardening — GAPS
 | Check | Status | Risk |
@@ -236,8 +236,8 @@ These are referenced in `docker-compose.yml` as `${VAR}` but **not defined in `.
 - [ ] **SSH root login enabled** — should be disabled
 - [ ] **No fail2ban** — server is actively being port-scanned
 - [ ] **No swap space** — OOM risk under load
-- [ ] **Old compose file** at `/opt/jaegeren/docker-compose.yml` contains **hardcoded Supabase anon key and API key**
-- [ ] **n8n API key** exposed in old compose file: `N8N_API_KEY=jaegeren-n8n-api-2026`
+- [ ] **Old compose file** at `/opt/advanced-think-tank/docker-compose.yml` contains **hardcoded Supabase anon key and API key**
+- [ ] **n8n API key** exposed in old compose file: `N8N_API_KEY=advanced-think-tank-n8n-api-2026`
 - [ ] **Webhook-test endpoints** accessible via nginx
 - [ ] **Port 3000** exposed to all interfaces (should be localhost only, behind nginx)
 - [ ] **No CSRF protection** on state-changing webhook requests
@@ -290,7 +290,7 @@ The core offering is: **Ask a question about geo-economics → get AI-analyzed a
 3. **9 of 18 sources not ingesting** — half the intelligence is missing
 4. **Web search API keys not configured** — Tavily/SerpAPI env vars empty in Docker (though hardcoded in workflows)
 5. **SSL certificates** — self-signed certs break user trust
-6. **Old compose file with exposed secrets** — delete `/opt/jaegeren/docker-compose.yml`
+6. **Old compose file with exposed secrets** — delete `/opt/advanced-think-tank/docker-compose.yml`
 7. **Configuration drift** — live n8n workflows diverged from exported JSON; re-export after fixing secrets
 
 #### P1 — Critical for Core Value
@@ -330,19 +330,19 @@ The core offering is: **Ask a question about geo-economics → get AI-analyzed a
 #    - ROTATE ALL EXPOSED KEYS after migration
 
 # 2. CRITICAL: Remove .env from git and add to .gitignore
-echo '.env' >> /opt/jaegeren/repo/.gitignore
-cd /opt/jaegeren/repo && git rm --cached .env 2>/dev/null
+echo '.env' >> /opt/advanced-think-tank/repo/.gitignore
+cd /opt/advanced-think-tank/repo && git rm --cached .env 2>/dev/null
 # Consider: git filter-branch or BFG to purge from history
 
 # 3. Delete stale containers and old compose file
-docker rm jaegeren-app jaegeren-n8n
-rm /opt/jaegeren/docker-compose.yml  # contains hardcoded secrets
+docker rm advanced-think-tank-app advanced-think-tank-n8n
+rm /opt/advanced-think-tank/docker-compose.yml  # contains hardcoded secrets
 
 # 4. Clean Docker resources (~9GB recoverable)
 docker system prune -a --volumes  # after confirming no needed volumes
 
 # 5. Get real SSL certificates
-sudo certbot --nginx -d et.20thousandleagues.com -d n8n.20thousandleagues.com
+sudo certbot --nginx -d et.advanced-think-tank.com -d n8n.advanced-think-tank.com
 
 # 6. Add swap space
 sudo fallocate -l 2G /swapfile

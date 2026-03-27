@@ -24,7 +24,7 @@ export const useLocaleStore = create<LocaleState>()(
       t: translations["en"],
     }),
     {
-      name: "jaegeren-locale",
+      name: "advanced-think-tank-locale",
       version: 3,
       migrate: () => ({ locale: "en" as Locale }),
       partialize: (state) => ({ locale: state.locale }),

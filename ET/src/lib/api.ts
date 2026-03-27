@@ -100,7 +100,7 @@ export async function queryRagPipeline(
     const timeout = setTimeout(() => controller.abort(), RAG_QUERY_TIMEOUT_MS);
 
     try {
-      const res = await fetch(`${N8N_WEBHOOK_URL}/jaegeren-query`, {
+      const res = await fetch(`${N8N_WEBHOOK_URL}/att-query`, {
         method: "POST",
         headers: buildHeaders(),
         body: JSON.stringify({ query_text: queryText, query_id: queryId, locale }),
@@ -159,7 +159,7 @@ export async function queryWebSearch(queryText: string, queryId: string): Promis
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), WEB_SEARCH_TIMEOUT_MS);
 
-    const res = await fetch(`${N8N_WEBHOOK_URL}/jaegeren-websearch`, {
+    const res = await fetch(`${N8N_WEBHOOK_URL}/att-websearch`, {
       method: "POST",
       headers: buildHeaders(),
       body: JSON.stringify({ query_text: queryText, query_id: queryId }),
@@ -275,7 +275,7 @@ export async function canvasChatMessage(
   const timeout = setTimeout(() => controller.abort(), 45_000);
 
   try {
-    const res = await fetch(`${N8N_WEBHOOK_URL}/jaegeren-canvas-chat`, {
+    const res = await fetch(`${N8N_WEBHOOK_URL}/att-canvas-chat`, {
       method: "POST",
       headers: buildHeaders(),
       body: JSON.stringify({

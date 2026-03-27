@@ -1,6 +1,6 @@
-# Jægeren (Community)
+# Advanced Think Tank
 
-Code bundle for Jægeren (Community).
+Code bundle for Advanced Think Tank.
 
 ## Running the code
 

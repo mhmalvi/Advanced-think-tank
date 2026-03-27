@@ -320,9 +320,9 @@ function StoryPanel() {
     const plainContent = content.replace(/[#*_`[\]]/g, "").replace(/<[^>]+>/g, "");
 
     if (format === "email") {
-      const subject = encodeURIComponent(`${title} — ET Hunter Briefing`);
+      const subject = encodeURIComponent(`${title} — Advanced Think Tank Briefing`);
       const body = encodeURIComponent(
-        `${title}\n\n${currentStory.synopsis || ""}\n\n${plainContent}\n\n---\nSources: ${currentStory.source_count} | ${dateStr}\nLabels: ${labels}\n\nExported from ET Hunter (et.20thousandleagues.com)`,
+        `${title}\n\n${currentStory.synopsis || ""}\n\n${plainContent}\n\n---\nSources: ${currentStory.source_count} | ${dateStr}\nLabels: ${labels}\n\nExported from Advanced Think Tank`,
       );
       window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
       toast.success("Opening email client");
@@ -336,7 +336,7 @@ function StoryPanel() {
         // Header
         paragraphs.push(
           new Paragraph({
-            children: [new TextRun({ text: "ET Hunter — Intelligence Briefing", size: 18, color: "888888" })],
+            children: [new TextRun({ text: "Advanced Think Tank — Intelligence Briefing", size: 18, color: "888888" })],
             spacing: { after: 100 },
           }),
         );
@@ -452,7 +452,7 @@ function StoryPanel() {
 
         const doc = new Document({
           sections: [{ properties: {}, children: paragraphs }],
-          creator: "ET Hunter",
+          creator: "Advanced Think Tank",
           title: title,
         });
 
@@ -495,7 +495,7 @@ function StoryPanel() {
         };
 
         // Header
-        addText("ET Hunter — Intelligence Briefing", 9, { color: "#888888" });
+        addText("Advanced Think Tank — Intelligence Briefing", 9, { color: "#888888" });
         addText(dateStr, 9, { color: "#888888" });
         y += 4;
 
@@ -542,7 +542,7 @@ function StoryPanel() {
         toast.error("Failed to generate PDF");
       }
     } else if (format === "html") {
-      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.7}h1{font-size:1.8em}h2{font-size:1.3em;border-bottom:1px solid #ddd;padding-bottom:4px}blockquote{border-left:3px solid #c00;padding-left:16px;color:#555;margin:16px 0}.label{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.75em;background:#f0f0f0;margin:2px}.header{color:#888;font-size:0.85em;margin-bottom:24px}</style></head><body><div class="header">ET Hunter — Intelligence Briefing | ${dateStr}</div><h1>${title}</h1><blockquote>${currentStory.synopsis || ""}</blockquote><p><small>${currentStory.source_count} sources</small></p><div>${(currentStory.labels || []).map((l: { text: string }) => `<span class="label">${l.text}</span>`).join(" ")}</div><hr>${content
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.7}h1{font-size:1.8em}h2{font-size:1.3em;border-bottom:1px solid #ddd;padding-bottom:4px}blockquote{border-left:3px solid #c00;padding-left:16px;color:#555;margin:16px 0}.label{display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.75em;background:#f0f0f0;margin:2px}.header{color:#888;font-size:0.85em;margin-bottom:24px}</style></head><body><div class="header">Advanced Think Tank — Intelligence Briefing | ${dateStr}</div><h1>${title}</h1><blockquote>${currentStory.synopsis || ""}</blockquote><p><small>${currentStory.source_count} sources</small></p><div>${(currentStory.labels || []).map((l: { text: string }) => `<span class="label">${l.text}</span>`).join(" ")}</div><hr>${content
         .replace(/^## (.*$)/gm, "<h2>$1</h2>")
         .replace(/^### (.*$)/gm, "<h3>$1</h3>")
         .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")

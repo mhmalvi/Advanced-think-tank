@@ -1,6 +1,6 @@
 {
   "id": "J3nEYLoNYGek74wo",
-  "name": "Jaegeren RSS Ingestion Pipeline",
+  "name": "Advanced Think Tank RSS Ingestion Pipeline",
   "nodes": [
     {
       "parameters": {
@@ -22,7 +22,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "jaegeren-ingest",
+        "path": "att-ingest",
         "responseMode": "lastNode",
         "options": {}
       },
@@ -31,19 +31,19 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [0, 100],
-      "webhookId": "jaegeren-ingest"
+      "webhookId": "att-ingest"
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "https://urppgmoexiuthsancgfj.supabase.co/rest/v1/sources?select=id,slug,name,feed_url,region,language,source_type,fetch_interval_minutes&is_active=eq.true&source_type=eq.rss&feed_url=not.is.null",
+        "url": "https://qwknvxpzmkkmeeziumok.supabase.co/rest/v1/sources?select=id,slug,name,feed_url,region,language,source_type,fetch_interval_minutes&is_active=eq.true&source_type=eq.rss&feed_url=not.is.null",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             }
           ]
         },
@@ -125,7 +125,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://jaegeren-articles-8xhwcso.svc.aped-4627-b74a.pinecone.io/records/namespaces/articles/upsert",
+        "url": "https://advanced-think-tank-fq9hhsz.svc.aped-4627-b74a.pinecone.io/records/namespaces/articles/upsert",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -155,7 +155,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://urppgmoexiuthsancgfj.supabase.co/rest/v1/articles",
+        "url": "https://qwknvxpzmkkmeeziumok.supabase.co/rest/v1/articles",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -163,11 +163,11 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "Prefer",
@@ -207,18 +207,18 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=https://urppgmoexiuthsancgfj.supabase.co/rest/v1/sources?id=eq.{{ $('Feed List').first().json.source_id }}",
+        "url": "=https://qwknvxpzmkkmeeziumok.supabase.co/rest/v1/sources?id=eq.{{ $('Feed List').first().json.source_id }}",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "Content-Type",
@@ -362,6 +362,6 @@
     "executionOrder": "v1"
   },
   "meta": {
-    "description": "V3 enriched pipeline: Polls RSS feeds every 30 minutes (or on-demand via POST /webhook/jaegeren-ingest). Fetches feed URLs from Supabase sources table. Enriches articles with author, region, language, topic_tags, source_name. Dual-writes to Pinecone (vector) and Supabase (display). Updates sources.last_fetched_at."
+    "description": "V3 enriched pipeline: Polls RSS feeds every 30 minutes (or on-demand via POST /webhook/att-ingest). Fetches feed URLs from Supabase sources table. Enriches articles with author, region, language, topic_tags, source_name. Dual-writes to Pinecone (vector) and Supabase (display). Updates sources.last_fetched_at."
   }
 }

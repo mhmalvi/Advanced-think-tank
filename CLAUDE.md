@@ -1,7 +1,7 @@
-# ET-Hunter Project
+# Advanced Think Tank Project
 
 ## Overview
-Jægeren Community - React + Vite + TypeScript application with Supabase backend.
+Advanced Think Tank - React + Vite + TypeScript application with Supabase backend.
 Figma-to-code generated UI using shadcn/ui (Radix UI) + Tailwind CSS v4 + MUI.
 
 ## Tech Stack

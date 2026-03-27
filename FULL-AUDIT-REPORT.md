@@ -1,4 +1,4 @@
-# Jaegeren Platform — Full Infrastructure & Application Audit
+# Advanced Think Tank — Full Infrastructure & Application Audit
 
 **Date:** 2026-03-07
 **Server:** Hetzner VPS (46.224.81.90) — 4 vCPUs, 7.6 GB RAM, 150 GB SSD
@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-Jaegeren is a **geo-economic intelligence platform** ("The Hunter" in Danish) that ingests news from 17 RSS sources, embeds them into Pinecone vector search, and answers analyst queries via a RAG pipeline (Pinecone + Claude synthesis). The frontend is a React SPA served via nginx, with n8n as the backend workflow engine and Supabase for auth/data persistence.
+Advanced Think Tank is a **geo-economic intelligence platform** that ingests news from 17 RSS sources, embeds them into Pinecone vector search, and answers analyst queries via a RAG pipeline (Pinecone + Claude synthesis). The frontend is a React SPA served via nginx, with n8n as the backend workflow engine and Supabase for auth/data persistence.
 
 **Overall Assessment:** The core product is functional and well-architected for an early-stage platform. The RAG query pipeline, RSS ingestion, and web search pipelines all work. However, there are **critical security gaps**, **infrastructure fragility**, **missing production hardening**, and **significant gaps in the core offering** that need attention before this is production-ready.
 
@@ -47,22 +47,22 @@ Jaegeren is a **geo-economic intelligence platform** ("The Hunter" in Danish) th
 - `repo-app-1` — nginx serving React SPA (healthy, 4.6 MB RAM)
 - `repo-n8n-1` — n8n v2.10.4 (healthy, 303 MB RAM)
 
-**Stopped containers (old jaegeren project):**
-- `jaegeren-app` — Created but never started
-- `jaegeren-n8n` — Created but never started
+**Stopped containers (old project):**
+- `advanced-think-tank-app` — Created but never started
+- `advanced-think-tank-n8n` — Created but never started
 
 **Issues Found:**
-1. **Two competing docker-compose files:** `/opt/jaegeren/docker-compose.yml` (old, stopped) and `/opt/jaegeren/repo/docker-compose.yml` (active). The old one has `N8N_API_KEY=jaegeren-n8n-api-2026` hardcoded and exposes port 5678 to `0.0.0.0` (world-accessible). **Clean up the old setup.**
-2. **Stopped containers waste resources.** Run `docker rm jaegeren-app jaegeren-n8n` and `docker network rm jaegeren_jaegeren-net`.
+1. **Two competing docker-compose files:** `/opt/advanced-think-tank/docker-compose.yml` (old, stopped) and `/opt/advanced-think-tank/repo/docker-compose.yml` (active). The old one has `N8N_API_KEY=advanced-think-tank-n8n-api-2026` hardcoded and exposes port 5678 to `0.0.0.0` (world-accessible). **Clean up the old setup.**
+2. **Stopped containers waste resources.** Run `docker rm advanced-think-tank-app advanced-think-tank-n8n` and `docker network rm advanced-think-tank-net`.
 3. **n8n pinned to v2.10.4** — good practice. The old compose uses `:latest` which is risky.
 4. **Memory limits set correctly** — app: 256M, n8n: 1G.
-5. **The old Dockerfile at `/opt/jaegeren/app/Dockerfile`** references a path `COPY /opt/jaegeren/app/nginx.conf` which is an absolute host path — this would fail during Docker build. The active Dockerfile in `ET/` is correct.
+5. **The old Dockerfile at `/opt/advanced-think-tank/app/Dockerfile`** references a path `COPY /opt/advanced-think-tank/app/nginx.conf` which is an absolute host path — this would fail during Docker build. The active Dockerfile in `ET/` is correct.
 
 ### 2.3 Networking & Reverse Proxy
 
 **System nginx** (host-level) serves three virtual hosts:
-- `et.20thousandleagues.com` → port 3000 (app) + webhook proxy to n8n
-- `n8n.20thousandleagues.com` → port 5678 (n8n UI + webhooks)
+- `et.advanced-think-tank.com` → port 3000 (app) + webhook proxy to n8n
+- `n8n.advanced-think-tank.com` → port 5678 (n8n UI + webhooks)
 - `46.224.81.90` (default) → same as above with self-signed SSL
 
 **Container nginx** (inside app container) handles SPA routing, CSP headers, gzip, and webhook proxying to `n8n:5678`.
@@ -71,7 +71,7 @@ Jaegeren is a **geo-economic intelligence platform** ("The Hunter" in Danish) th
 1. **Self-signed certificates only.** No Let's Encrypt / real TLS. Browsers will show security warnings. The `VITE_APP_URL` is set to `http://46.224.81.90` — plain HTTP.
 2. **Port 3000 exposed directly to 0.0.0.0** — accessible without going through system nginx. Should be `127.0.0.1:3000:80`.
 3. **`/webhook-test/` exposed in production** — this is n8n's test webhook endpoint, should be blocked in production nginx configs.
-4. **n8n UI exposed via `/n8n/` path on the IP** and fully at `n8n.20thousandleagues.com` — no IP whitelist or basic auth. Anyone who knows the domain can access the n8n admin panel.
+4. **n8n UI exposed via `/n8n/` path on the IP** and fully at `n8n.advanced-think-tank.com` — no IP whitelist or basic auth. Anyone who knows the domain can access the n8n admin panel.
 5. **No firewall (ufw/iptables) configured.** Ports 22, 80, 443, 3000 all open to the world.
 6. **Double webhook proxying** — system nginx proxies `/webhook/` to n8n, AND the container nginx also proxies `/webhook/` to n8n. This means webhooks work via two paths, which is fine but creates confusion about which rate limits apply.
 
@@ -91,7 +91,7 @@ ssl_certificate_key /etc/nginx/ssl/self-signed.key;
 **Fix:** Install certbot and get real certificates:
 ```bash
 apt install certbot python3-certbot-nginx
-certbot --nginx -d et.20thousandleagues.com -d n8n.20thousandleagues.com
+certbot --nginx -d et.advanced-think-tank.com -d n8n.advanced-think-tank.com
 ```
 
 ### 2.5 CI/CD Pipeline
@@ -99,13 +99,13 @@ certbot --nginx -d et.20thousandleagues.com -d n8n.20thousandleagues.com
 The GitHub Actions workflow is solid:
 1. `check` job: install + typecheck + build
 2. `build` job: verify build passes
-3. `deploy` job: SSH into VPS → run `/opt/jaegeren/deploy.sh`
+3. `deploy` job: SSH into VPS → run `/opt/advanced-think-tank/deploy.sh`
 
 **Issues:**
 1. **Deploy script uses `git reset --hard origin/main`** — this destroys any local changes on the server. This is fine for a clean deploy but risky if someone makes manual changes on the server.
 2. **Lint step uses `|| true`** — lint errors are silently ignored.
 3. **No rollback mechanism.** If a deploy breaks the app, there's no quick way to revert.
-4. **Deploy script references `/opt/jaegeren/deploy.sh`** (root-level) but the actual script is at `/opt/jaegeren/repo/deploy.sh`. They appear to be the same content but this is confusing.
+4. **Deploy script references `/opt/advanced-think-tank/deploy.sh`** (root-level) but the actual script is at `/opt/advanced-think-tank/repo/deploy.sh`. They appear to be the same content but this is confusing.
 
 ### 2.6 Backups
 
@@ -194,7 +194,7 @@ ET/src/
 
 Three active workflows:
 
-#### RAG Query Pipeline (`/webhook/jaegeren-query`)
+#### RAG Query Pipeline (`/webhook/advanced-think-tank-query`)
 ```
 Webhook → Pinecone Search (top_k:5, rerank top_n:3) → Prepare Context → Claude Synthesis → Build Response → Respond
 ```
@@ -221,7 +221,7 @@ Schedule/Webhook → Fetch Source IDs → Feed List (17 feeds) → Read RSS → 
 6. **Bloomberg feeds (`feeds.bloomberg.com`) are often blocked/empty** behind paywall. Same for FT, Nikkei, Caixin. These may produce zero articles silently.
 7. **Two Bloomberg entries share the same source_slug** `'bloomberg'` — will map to same source_id.
 
-#### Web Search Pipeline (`/webhook/jaegeren-websearch`)
+#### Web Search Pipeline (`/webhook/advanced-think-tank-websearch`)
 ```
 Webhook → Tavily + SerpApi (parallel) → Merge & Deduplicate → Respond
 ```
@@ -255,8 +255,8 @@ Webhook → Tavily + SerpApi (parallel) → Merge & Deduplicate → Respond
 
 | # | Issue | Location | Fix |
 |---|-------|----------|-----|
-| 1 | **Supabase anon key committed to git** in plain text | `/opt/jaegeren/docker-compose.yml` line 29, `.env` files | Move to GitHub Secrets / env vars only. Note: Supabase anon keys are designed to be public when RLS is properly configured, but the service role key must stay secret. |
-| 2 | **N8N API key hardcoded** `jaegeren-n8n-api-2026` | `/opt/jaegeren/docker-compose.yml` line 15 | Remove from version control, use secrets |
+| 1 | **Supabase anon key committed to git** in plain text | `/opt/advanced-think-tank/docker-compose.yml` line 29, `.env` files | Move to GitHub Secrets / env vars only. Note: Supabase anon keys are designed to be public when RLS is properly configured, but the service role key must stay secret. |
+| 2 | **N8N API key hardcoded** `advanced-think-tank-n8n-api-2026` | `/opt/advanced-think-tank/docker-compose.yml` line 15 | Remove from version control, use secrets |
 | 3 | **Self-signed TLS certificates** | `/etc/nginx/ssl/self-signed.*` | Install Let's Encrypt via certbot |
 | 4 | **n8n encryption key exposed** `CpuTBrAZqpE9wATnPIE7aabh2teEisFf` | Container `/home/node/.n8n/config` | This key encrypts n8n credentials (Pinecone, Anthropic API keys). If exposed, all stored credentials are compromised. Rotate it. |
 | 5 | **No firewall** | Server-level | Enable ufw: `ufw allow 22,80,443/tcp && ufw enable` |
@@ -266,7 +266,7 @@ Webhook → Tavily + SerpApi (parallel) → Merge & Deduplicate → Respond
 
 | # | Issue | Location | Fix |
 |---|-------|----------|-----|
-| 7 | **n8n admin UI publicly accessible** | `n8n.20thousandleagues.com` | Add basic auth or IP whitelist to nginx |
+| 7 | **n8n admin UI publicly accessible** | `n8n.advanced-think-tank.com` | Add basic auth or IP whitelist to nginx |
 | 8 | **`/webhook-test/` exposed in production** | System nginx configs | Remove from production nginx |
 | 9 | **No CSRF protection** on state-changing requests | Frontend → n8n webhooks | Add CSRF tokens or use SameSite cookies |
 | 10 | **No rate limiting on system nginx** | `/etc/nginx/sites-enabled/*` | Add `limit_req_zone` (the container nginx has it, but system nginx doesn't) |
@@ -288,7 +288,7 @@ Webhook → Tavily + SerpApi (parallel) → Merge & Deduplicate → Respond
 
 ### 5.1 Core Value Proposition
 
-Jaegeren's core offering is: **"Ask a question about geo-economic affairs, get an AI-synthesized answer with cited sources from 17+ news feeds."**
+Advanced Think Tank's core offering is: **"Ask a question about geo-economic affairs, get an AI-synthesized answer with cited sources from 17+ news feeds."**
 
 ### 5.2 What's Implemented (Working)
 
@@ -348,7 +348,7 @@ Thumbs up/down is stored as `queries.is_saved` boolean. Need a dedicated `feedba
 1. **Install Let's Encrypt TLS certificates** via certbot
 2. **Enable ufw firewall** — allow only ports 22, 80, 443
 3. **Bind port 3000 to localhost** — change `"3000:80"` to `"127.0.0.1:3000:80"` in docker-compose
-4. **Remove old docker-compose** and stopped containers at `/opt/jaegeren/docker-compose.yml`
+4. **Remove old docker-compose** and stopped containers at `/opt/advanced-think-tank/docker-compose.yml`
 5. **Block `/webhook-test/`** in production nginx configs
 6. **Add basic auth or IP whitelist** to n8n admin UI
 7. **Add rate limiting** to system nginx webhook locations
@@ -389,16 +389,16 @@ Thumbs up/down is stored as `queries.is_saved` boolean. Need a dedicated `feedba
 
 | File | Line(s) | Issue |
 |------|---------|-------|
-| `/opt/jaegeren/docker-compose.yml` | 15,28-29 | API key and Supabase key hardcoded |
-| `/opt/jaegeren/repo/docker-compose.yml` | 6 | Port 3000 bound to 0.0.0.0 |
-| `/opt/jaegeren/repo/ET/src/lib/api.ts` | 110 | `console.error` in production |
-| `/opt/jaegeren/repo/ET/src/stores/app.ts` | 200,249,252 | `console.error` in production |
-| `/opt/jaegeren/repo/ET/src/stores/auth.ts` | 135 | `console.error` in production |
-| `/opt/jaegeren/repo/ET/n8n/workflows/rag-query-pipeline.json` | 103 | Confidence double-multiplication bug |
-| `/opt/jaegeren/repo/ET/n8n/workflows/rss-ingestion-pipeline.json` | 7 | 2-hour interval vs documented 30min |
-| `/opt/jaegeren/repo/ET/n8n/workflows/rss-ingestion-pipeline.json` | 78 | Only 10 articles per feed |
-| `/opt/jaegeren/repo/ET/src/app/App.tsx` | 20 | `useLocaleStore.getState()` called in render method of class component (works but is a React anti-pattern) |
-| `/opt/jaegeren/app/Dockerfile` | 19 | Absolute host path `COPY /opt/jaegeren/app/nginx.conf` — would fail in Docker build |
+| `/opt/advanced-think-tank/docker-compose.yml` | 15,28-29 | API key and Supabase key hardcoded |
+| `/opt/advanced-think-tank/repo/docker-compose.yml` | 6 | Port 3000 bound to 0.0.0.0 |
+| `/opt/advanced-think-tank/repo/ET/src/lib/api.ts` | 110 | `console.error` in production |
+| `/opt/advanced-think-tank/repo/ET/src/stores/app.ts` | 200,249,252 | `console.error` in production |
+| `/opt/advanced-think-tank/repo/ET/src/stores/auth.ts` | 135 | `console.error` in production |
+| `/opt/advanced-think-tank/repo/ET/n8n/workflows/rag-query-pipeline.json` | 103 | Confidence double-multiplication bug |
+| `/opt/advanced-think-tank/repo/ET/n8n/workflows/rss-ingestion-pipeline.json` | 7 | 2-hour interval vs documented 30min |
+| `/opt/advanced-think-tank/repo/ET/n8n/workflows/rss-ingestion-pipeline.json` | 78 | Only 10 articles per feed |
+| `/opt/advanced-think-tank/repo/ET/src/app/App.tsx` | 20 | `useLocaleStore.getState()` called in render method of class component (works but is a React anti-pattern) |
+| `/opt/advanced-think-tank/app/Dockerfile` | 19 | Absolute host path `COPY /opt/advanced-think-tank/app/nginx.conf` — would fail in Docker build |
 | `/etc/nginx/sites-enabled/et` | all | No TLS, no rate limiting |
 | `/etc/nginx/sites-available/n8n` | all | No access control on n8n admin |
 | `.github/workflows/deploy.yml` | 36 | `pnpm lint \|\| true` — lint errors silently ignored |
@@ -409,8 +409,8 @@ Thumbs up/down is stored as `queries.is_saved` boolean. Need a dedicated `feedba
 
 1. `ufw allow 22,80,443/tcp && ufw enable` — firewall
 2. Change `"3000:80"` to `"127.0.0.1:3000:80"` in docker-compose, `docker compose up -d`
-3. `certbot --nginx -d et.20thousandleagues.com -d n8n.20thousandleagues.com` — real TLS
-4. `docker rm jaegeren-app jaegeren-n8n && docker network rm jaegeren_jaegeren-net` — cleanup
+3. `certbot --nginx -d et.advanced-think-tank.com -d n8n.advanced-think-tank.com` — real TLS
+4. `docker rm advanced-think-tank-app advanced-think-tank-n8n && docker network rm advanced-think-tank-net` — cleanup
 5. `fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile` — swap
 6. Remove `/webhook-test/` from production nginx configs
 7. Add `auth_basic` to n8n nginx location

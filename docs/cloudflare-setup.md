@@ -1,7 +1,7 @@
-# CloudFlare Configuration for Jaegeren
+# CloudFlare Configuration for Advanced Think Tank
 
 ## DNS Setup
-- A record: et.20thousandleagues.com → 46.224.81.90 (Proxied/Orange cloud)
+- A record: et.advanced-think-tank.com → 46.224.81.90 (Proxied/Orange cloud)
 
 ## SSL/TLS
 - Mode: Full (Strict) — server has Let's Encrypt cert

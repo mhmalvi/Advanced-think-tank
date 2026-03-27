@@ -59,7 +59,7 @@ export const da: Translations = {
     fullName: "Fulde navn",
     fullNamePlaceholder: "Dit navn",
     loginSubtitle: "Adgang til din efterretningsplatform",
-    signupSubtitle: "Kom i gang med Jaegeren",
+    signupSubtitle: "Kom i gang med Advanced Think Tank",
     noAccount: "Har du ikke en konto?",
     hasAccount: "Har du allerede en konto?",
     tagline:
@@ -169,7 +169,7 @@ export const da: Translations = {
     neverRun: "Aldrig",
     noAnalysisToSend: "Koer en forespoergsel foerst for at sende resultater",
     latestNewsFrom: "Seneste nyheder fra {name}",
-    emailSubject: "Jaegeren: {query}",
+    emailSubject: "Advanced Think Tank: {query}",
     emailBodyQuery:
       "Forespoergsel: {query}\n\n{content}\n\nKilder: {primary} primaere, {supporting} stottende\nTillid: {confidence}%",
     emailBodyDefault:
@@ -226,7 +226,7 @@ export const da: Translations = {
   },
   profile: {
     title: "Brugerprofil",
-    subtitle: "Administrer dine personlige oplysninger og praeferencer for Jaegeren.",
+    subtitle: "Administrer dine personlige oplysninger og praeferencer for Advanced Think Tank.",
     avatar: "Profilbillede",
     uploadPhoto: "Upload nyt billede",
     photoHint: "JPG, GIF eller PNG. Maks 2MB.",
@@ -266,7 +266,7 @@ export const da: Translations = {
     noSavedPrompts: "Ingen gemte prompts endnu. Tilfoej en nedenfor.",
     addPromptPlaceholder: "f.eks. 'Opsummer de vigtigste risici for nordiske markeder'",
     notifications: "Notifikationer",
-    notificationsDesc: "Styr hvordan og hvornaar du modtager opdateringer fra Jaegeren.",
+    notificationsDesc: "Styr hvordan og hvornaar du modtager opdateringer fra Advanced Think Tank.",
     enableNotifications: "Aktiver notifikationer",
     enableNotificationsDesc: "Modtag opdateringer om nye efterretningsbriefs og historier.",
     breakingNews: "Breaking news-alarmer",
@@ -285,7 +285,7 @@ export const da: Translations = {
     teamMembers: "Teammedlemmer",
     teamDesc: "Inviter og administrer teammedlemmer, tildel roller og rettigheder.",
     apiKeys: "API-noegler",
-    apiDesc: "Administrer API-noegler til programmatisk adgang til Jaegeren-platformen.",
+    apiDesc: "Administrer API-noegler til programmatisk adgang til Advanced Think Tank-platformen.",
     billing: "Fakturering",
     billingDesc: "Administrer dit abonnement, fakturaer og betalingsmetoder.",
     comingSoon: "Kommer snart",
@@ -300,7 +300,7 @@ export const da: Translations = {
     rateLimited: "Vent venligst et øjeblik",
   },
   export: {
-    title: "Jaegeren Analyse",
+    title: "Advanced Think Tank Analyse",
     queryLabel: "Forespoergsel",
     dateLabel: "Dato",
     analysisHeading: "Analyse",
@@ -400,7 +400,7 @@ export const da: Translations = {
     systemIntelligence: "System & efterretning",
   },
   landing: {
-    heroTitle: "Jægeren",
+    heroTitle: "Advanced Think Tank",
     heroSubtitle: "Erhvervslivets Tænketank",
     heroTagline:
       "Overvaag geopolitiske skift, handelsmonstre og okonomiske politikker - syntetiseret fra 17+ kilder med AI.",
@@ -448,7 +448,7 @@ export const da: Translations = {
     queryExample: "Hvad er de seneste EU-sanktioner mod russisk energiimport?",
     ctaTitle: "Begynd at skabe overblik i stojen",
     ctaSubtitle:
-      "Slut dig til analytikere der bruger Jaegeren til at skære igennem kompleksitet og finde det der betyder noget.",
+      "Slut dig til analytikere der bruger Advanced Think Tank til at skære igennem kompleksitet og finde det der betyder noget.",
     privacy: "Privatliv",
     terms: "Vilkaar",
   },

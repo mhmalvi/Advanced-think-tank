@@ -1,12 +1,12 @@
 #!/bin/bash
-# Jaegeren blue-green deploy script
+# Advanced Think Tank blue-green deploy script
 # Builds new image, verifies it in a temporary container, then swaps.
 # Rolls back to the previous image if the new one fails health checks.
 set -euo pipefail
 
-LOG="/var/log/jaegeren-deploy.log"
-REPO="/opt/jaegeren/repo"
-COMPOSE_DIR="/opt/jaegeren/repo"
+LOG="/var/log/advanced-think-tank-deploy.log"
+REPO="/opt/advanced-think-tank/repo"
+COMPOSE_DIR="/opt/advanced-think-tank/repo"
 GREEN_PORT=3001
 APP_SERVICE="app"
 
@@ -14,7 +14,7 @@ log() { echo "$(date '+%Y-%m-%d %H:%M:%S') — $1" | tee -a "$LOG"; }
 
 cleanup_green() {
   log "Cleaning up green container..."
-  docker rm -f jaegeren-green 2>/dev/null || true
+  docker rm -f advanced-think-tank-green 2>/dev/null || true
 }
 
 log "Deploy triggered"
@@ -54,7 +54,7 @@ log "New image: ${NEW_IMAGE:-unknown}"
 cleanup_green
 log "Starting green container on port $GREEN_PORT for verification..."
 docker run -d \
-  --name jaegeren-green \
+  --name advanced-think-tank-green \
   --memory=512m \
   --cpus=0.5 \
   -p "127.0.0.1:${GREEN_PORT}:80" \

@@ -8,7 +8,7 @@ const isProduction = baseUrl.startsWith("https://");
 test.describe("App Loading", () => {
   test("should load the login page", async ({ page }) => {
     await page.goto("/auth");
-    await expect(page).toHaveTitle(/Jaegeren/i);
+    await expect(page).toHaveTitle(/Advanced Think Tank/i);
     // Should have a sign-in form or auth UI
     await expect(page.locator("body")).toBeVisible();
   });

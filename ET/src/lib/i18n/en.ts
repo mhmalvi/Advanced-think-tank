@@ -57,7 +57,7 @@ export const en = {
     fullName: "Full name",
     fullNamePlaceholder: "Your name",
     loginSubtitle: "Access your intelligence platform",
-    signupSubtitle: "Get started with Jaegeren",
+    signupSubtitle: "Get started with Advanced Think Tank",
     noAccount: "Don't have an account?",
     hasAccount: "Already have an account?",
     tagline:
@@ -167,7 +167,7 @@ export const en = {
     neverRun: "Never",
     noAnalysisToSend: "Run a query first to send results",
     latestNewsFrom: "Latest news from {name}",
-    emailSubject: "Jaegeren: {query}",
+    emailSubject: "Advanced Think Tank: {query}",
     emailBodyQuery:
       "Query: {query}\n\n{content}\n\nSources: {primary} primary, {supporting} supporting\nConfidence: {confidence}%",
     emailBodyDefault:
@@ -224,7 +224,7 @@ export const en = {
   },
   profile: {
     title: "User Profile",
-    subtitle: "Manage your personal information and preferences for Jaegeren.",
+    subtitle: "Manage your personal information and preferences for Advanced Think Tank.",
     avatar: "Profile photo",
     uploadPhoto: "Upload new photo",
     photoHint: "JPG, GIF or PNG. Max 2MB.",
@@ -264,7 +264,7 @@ export const en = {
     noSavedPrompts: "No saved prompts yet. Add one below.",
     addPromptPlaceholder: "e.g. 'Summarize the key risks for Nordic markets'",
     notifications: "Notifications",
-    notificationsDesc: "Control how and when you receive updates from Jaegeren.",
+    notificationsDesc: "Control how and when you receive updates from Advanced Think Tank.",
     enableNotifications: "Enable notifications",
     enableNotificationsDesc: "Receive updates about new intelligence briefs and stories.",
     breakingNews: "Breaking news alerts",
@@ -283,7 +283,7 @@ export const en = {
     teamMembers: "Team Members",
     teamDesc: "Invite and manage team members, assign roles and permissions.",
     apiKeys: "API Keys",
-    apiDesc: "Manage API keys for programmatic access to the Jaegeren platform.",
+    apiDesc: "Manage API keys for programmatic access to the Advanced Think Tank platform.",
     billing: "Billing",
     billingDesc: "Manage your subscription, invoices and payment methods.",
     comingSoon: "Coming soon",
@@ -298,7 +298,7 @@ export const en = {
     rateLimited: "Please wait a moment",
   },
   export: {
-    title: "Jaegeren Analysis",
+    title: "Advanced Think Tank Analysis",
     queryLabel: "Query",
     dateLabel: "Date",
     analysisHeading: "Analysis",
@@ -398,7 +398,7 @@ export const en = {
     systemIntelligence: "System & intelligence",
   },
   landing: {
-    heroTitle: "Jægeren",
+    heroTitle: "Advanced Think Tank",
     heroSubtitle: "Erhvervslivets Tænketank",
     heroTagline:
       "Monitor geopolitical shifts, trade patterns, and economic policies — synthesized from 17+ sources using AI.",
@@ -445,7 +445,7 @@ export const en = {
     trustedBy: "Trusted by analysts and decision-makers",
     queryExample: "What are the latest EU sanctions on Russian energy imports?",
     ctaTitle: "Start making sense of the noise",
-    ctaSubtitle: "Join analysts who use Jaegeren to cut through complexity and surface what matters.",
+    ctaSubtitle: "Join analysts who use Advanced Think Tank to cut through complexity and surface what matters.",
     privacy: "Privacy",
     terms: "Terms",
   },

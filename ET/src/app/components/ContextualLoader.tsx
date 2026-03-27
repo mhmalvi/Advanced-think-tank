@@ -34,7 +34,7 @@ const messagesDa: Record<LoadingContext, string[]> = {
   synthesizing: [
     "Henter alle kilder...",
     "Syntetiserer nyhederne...",
-    "Tilfojer ET's hemmelige ingrediens...",
+    "Tilfojer den hemmelige ingrediens...",
     "Krydsrefererer tidslinjer...",
   ],
   searching: [

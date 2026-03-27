@@ -81,7 +81,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       if (!isSupabaseConfigured()) {
         logger.info("Supabase not configured — activating dev mode with mock user");
         set({
-          user: { id: "dev-user", email: "dev@jaegeren.local" } as unknown as User,
+          user: { id: "dev-user", email: "dev@advanced-think-tank.local" } as unknown as User,
           loading: false,
           initialized: true,
           needsOnboarding: false,

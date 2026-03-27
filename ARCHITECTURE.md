@@ -1,8 +1,8 @@
-# Jaegeren — Geo-Economic Intelligence Platform
+# Advanced Think Tank — Geo-Economic Intelligence Platform
 
 ## What It Is
 
-Jaegeren ("The Hunter" in Danish) is a real-time geo-economic intelligence platform that:
+Advanced Think Tank is a real-time geo-economic intelligence platform that:
 - Ingests articles from 18+ news sources via RSS every 30 minutes
 - Embeds content into Pinecone vector search (multilingual-e5-large, 1024 dims)
 - Answers analyst queries via RAG pipeline (Pinecone retrieval + bge-reranker + Claude synthesis)

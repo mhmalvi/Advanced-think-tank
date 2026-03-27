@@ -175,7 +175,7 @@ export function LandingPage() {
                 </div>
                 <div className="flex-1 mx-6">
                   <div className="mx-auto max-w-xs h-6 rounded-md bg-background border border-stone-200 dark:border-stone-700 flex items-center px-3">
-                    <span className="text-[10px] text-muted-foreground font-mono">et.20thousandleagues.com</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">app.advancedthinktank.com</span>
                   </div>
                 </div>
               </div>

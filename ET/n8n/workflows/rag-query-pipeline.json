@@ -1,11 +1,11 @@
 {
   "id": "B4eeFuBI0ZJFgBTM",
-  "name": "Jaegeren RAG Query Pipeline",
+  "name": "Advanced Think Tank RAG Query Pipeline",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "jaegeren-query",
+        "path": "att-query",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -14,12 +14,12 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [0, 0],
-      "webhookId": "jaegeren-query"
+      "webhookId": "att-query"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://jaegeren-articles-8xhwcso.svc.aped-4627-b74a.pinecone.io/records/namespaces/articles/search",
+        "url": "https://advanced-think-tank-fq9hhsz.svc.aped-4627-b74a.pinecone.io/records/namespaces/articles/search",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,

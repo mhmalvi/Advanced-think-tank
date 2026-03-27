@@ -1,4 +1,4 @@
-# Jægeren — Data Sources
+# Advanced Think Tank — Data Sources
 
 ## News Aggregator APIs
 

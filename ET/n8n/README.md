@@ -1,8 +1,8 @@
-# Jaegeren n8n Workflows
+# Advanced Think Tank n8n Workflows
 
 ## n8n Instance
 
-- **URL:** https://n8n.20thousandleagues.com/
+- **URL:** https://n8n.your-domain.com/
 
 ## Prerequisites
 
@@ -40,12 +40,12 @@
 
 ### RAG Query Pipeline (`rag-query-pipeline.json`)
 
-**Trigger:** Webhook POST to `/webhook/jaegeren-query`
+**Trigger:** Webhook POST to `/webhook/att-query`
 
 **Flow:**
 
 1. Receives `{ query_text, query_id }` via webhook
-2. Searches Pinecone `jaegeren-articles` index with multilingual-e5-large embeddings
+2. Searches Pinecone articles index with multilingual-e5-large embeddings
 3. Reranks results with bge-reranker-v2-m3
 4. Sends top 3 results + query to Claude for synthesis
 5. Returns structured JSON with analysis + citations
@@ -55,7 +55,7 @@
 1. Import workflow into n8n
 2. Update credential IDs in "Search Pinecone" and "LLM Synthesis" nodes
 3. Activate workflow
-4. Set `VITE_N8N_WEBHOOK_URL=https://n8n.20thousandleagues.com/webhook` in frontend `.env`
+4. Set `VITE_N8N_WEBHOOK_URL=https://n8n.your-domain.com/webhook` in frontend `.env`
 
 ### RSS Ingestion Pipeline (`rss-ingestion-pipeline.json`)
 
@@ -80,17 +80,17 @@
 
 ## Pinecone Index
 
-- **Name:** `jaegeren-articles`
+- **Name:** `att-articles`
 - **Embedding model:** `multilingual-e5-large` (1024 dims, integrated)
 - **Namespace:** `articles`
-- **Host:** `jaegeren-articles-8xhwcso.svc.aped-4627-b74a.pinecone.io`
+- **Host:** `att-articles-8xhwcso.svc.aped-4627-b74a.pinecone.io`
 
 ## Testing
 
 POST to the webhook to test:
 
 ```bash
-curl -X POST https://n8n.20thousandleagues.com/webhook/jaegeren-query \
+curl -X POST https://n8n.your-domain.com/webhook/att-query \
   -H "Content-Type: application/json" \
   -H "x-webhook-secret: YOUR_SECRET" \
   -d '{"query_text": "China semiconductor policy", "query_id": "test-001"}'

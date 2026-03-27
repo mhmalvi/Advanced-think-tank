@@ -1,6 +1,6 @@
 {
   "id": "cwYCYeDfuOE8bloq",
-  "name": "Jaegeren Story Synthesis Pipeline",
+  "name": "Advanced Think Tank Story Synthesis Pipeline",
   "nodes": [
     {
       "parameters": {
@@ -22,7 +22,7 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "jaegeren-synthesize",
+        "path": "att-synthesize",
         "responseMode": "lastNode",
         "options": {}
       },
@@ -31,19 +31,19 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [0, 100],
-      "webhookId": "jaegeren-synthesize"
+      "webhookId": "att-synthesize"
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://urppgmoexiuthsancgfj.supabase.co/rest/v1/articles?select=id,title,url,excerpt,content,source_name,region,language,topic_tags,published_at,image_url&order=published_at.desc&limit=300&published_at=gte.{{ new Date(Date.now() - 48*60*60*1000).toISOString() }}&content=not.is.null",
+        "url": "=https://qwknvxpzmkkmeeziumok.supabase.co/rest/v1/articles?select=id,title,url,excerpt,content,source_name,region,language,topic_tags,published_at,image_url&order=published_at.desc&limit=300&published_at=gte.{{ new Date(Date.now() - 48*60*60*1000).toISOString() }}&content=not.is.null",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             }
           ]
         },
@@ -113,7 +113,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 4096, messages: [{ role: 'user', content: `You are an intelligence analyst for ET J\u00e6geren, a Danish geopolitical intelligence platform. Synthesize the following ${$json.article_count} news articles about \"${$json.cluster_topic}\" into a structured intelligence brief.\n\nARTICLES:\n${$json.articles_context}\n\nGenerate a JSON object with these exact fields:\n{\n  \"title\": \"Concise headline (max 100 chars, no quotes around it)\",\n  \"synopsis\": \"2-3 sentence executive summary for busy analysts\",\n  \"synthetic_content\": \"Rich markdown intelligence brief (600-1200 words). Use ## headings for sections. Include [BACKGROUND] block for context. Use **bold** for key entities/numbers. End with a ## Outlook section on implications.\",\n  \"labels\": [{\"type\": \"source\", \"text\": \"topic tag\", \"reason\": \"why this label\"}, {\"type\": \"ai\", \"text\": \"analysis tag\", \"reason\": \"analytical insight\"}],\n  \"timeline_entries\": [{\"timestamp\": \"ISO date\", \"summary\": \"what happened\", \"anchor_id\": \"heading-slug\"}],\n  \"confidence_score\": 0.85,\n  \"significance_rating\": 8\n}\n\nRules:\n- confidence_score: 0.00-1.00 based on source agreement and coverage depth\n- significance_rating: 1-10 for how important this story is globally\n- timeline_entries: 2-4 entries matching ## headings in synthetic_content (anchor_id = lowercase-hyphenated heading)\n- labels: 2-4 labels mixing \"source\" (factual tags) and \"ai\" (analytical insight tags)\n- synthetic_content must use proper markdown. Sections should have ## headings.\n- Write in English. If articles are in Danish, translate key insights.\n- Be analytical, not just descriptive. What does this mean? Who benefits? What are the risks?\n\nRespond with ONLY the JSON object, no markdown fences.` }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 4096, messages: [{ role: 'user', content: `You are an intelligence analyst for the Advanced Think Tank, a geopolitical intelligence platform. Synthesize the following ${$json.article_count} news articles about \"${$json.cluster_topic}\" into a structured intelligence brief.\n\nARTICLES:\n${$json.articles_context}\n\nGenerate a JSON object with these exact fields:\n{\n  \"title\": \"Concise headline (max 100 chars, no quotes around it)\",\n  \"synopsis\": \"2-3 sentence executive summary for busy analysts\",\n  \"synthetic_content\": \"Rich markdown intelligence brief (600-1200 words). Use ## headings for sections. Include [BACKGROUND] block for context. Use **bold** for key entities/numbers. End with a ## Outlook section on implications.\",\n  \"labels\": [{\"type\": \"source\", \"text\": \"topic tag\", \"reason\": \"why this label\"}, {\"type\": \"ai\", \"text\": \"analysis tag\", \"reason\": \"analytical insight\"}],\n  \"timeline_entries\": [{\"timestamp\": \"ISO date\", \"summary\": \"what happened\", \"anchor_id\": \"heading-slug\"}],\n  \"confidence_score\": 0.85,\n  \"significance_rating\": 8\n}\n\nRules:\n- confidence_score: 0.00-1.00 based on source agreement and coverage depth\n- significance_rating: 1-10 for how important this story is globally\n- timeline_entries: 2-4 entries matching ## headings in synthetic_content (anchor_id = lowercase-hyphenated heading)\n- labels: 2-4 labels mixing \"source\" (factual tags) and \"ai\" (analytical insight tags)\n- synthetic_content must use proper markdown. Sections should have ## headings.\n- Write in English. If articles are in Danish, translate key insights.\n- Be analytical, not just descriptive. What does this mean? Who benefits? What are the risks?\n\nRespond with ONLY the JSON object, no markdown fences.` }] }) }}",
         "options": {
           "batching": {
             "batch": {
@@ -177,18 +177,18 @@
     {
       "parameters": {
         "method": "DELETE",
-        "url": "=https://urppgmoexiuthsancgfj.supabase.co/rest/v1/stories?created_at=lt.{{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}",
+        "url": "=https://qwknvxpzmkkmeeziumok.supabase.co/rest/v1/stories?created_at=lt.{{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             }
           ]
         },
@@ -204,18 +204,18 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "https://urppgmoexiuthsancgfj.supabase.co/rest/v1/stories?is_featured=eq.true",
+        "url": "https://qwknvxpzmkkmeeziumok.supabase.co/rest/v1/stories?is_featured=eq.true",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "Content-Type",
@@ -238,18 +238,18 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://urppgmoexiuthsancgfj.supabase.co/rest/v1/stories",
+        "url": "https://qwknvxpzmkkmeeziumok.supabase.co/rest/v1/stories",
         "authentication": "none",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVycHBnbW9leGl1dGhzYW5jZ2ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjY0OTUzNSwiZXhwIjoyMDg4MjI1NTM1fQ.E-XNa4yWBFNKNmzUt_xPzgIvT47SHCHAVYQuEzTO6jo"
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA"
             },
             {
               "name": "Content-Type",

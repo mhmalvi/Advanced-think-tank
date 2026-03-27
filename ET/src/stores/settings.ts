@@ -174,7 +174,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
     }),
     {
-      name: "jaegeren-settings",
+      name: "advanced-think-tank-settings",
       partialize: (state) => ({
         topics: state.topics,
         geographies: state.geographies,
