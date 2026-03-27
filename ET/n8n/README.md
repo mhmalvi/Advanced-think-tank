@@ -80,10 +80,10 @@
 
 ## Pinecone Index
 
-- **Name:** `att-articles`
+- **Name:** `advanced-think-tank`
 - **Embedding model:** `multilingual-e5-large` (1024 dims, integrated)
 - **Namespace:** `articles`
-- **Host:** `att-articles-8xhwcso.svc.aped-4627-b74a.pinecone.io`
+- **Host:** `advanced-think-tank-fq9hhsz.svc.aped-4627-b74a.pinecone.io`
 
 ## Testing
 
