@@ -161,9 +161,9 @@ export function SimulationPage() {
           )}
         </div>
 
-        {/* Agent activity panel (slide-in) */}
+        {/* Agent activity panel (slide-in, hidden on small screens) */}
         {showActions && (
-          <div className="w-80 shrink-0 border-l border-stone-200 dark:border-stone-800">
+          <div className="hidden sm:block w-80 shrink-0 border-l border-stone-200 dark:border-stone-800">
             <AgentActivityFeed
               actions={actions}
               onClose={() => setShowActions(false)}

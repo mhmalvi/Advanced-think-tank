@@ -1,4 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#E30613"/>
-  <text x="16" y="22" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="800" font-size="16" fill="white">ATT</text>
+  <defs>
+    <linearGradient id="fg" x1="0" y1="0" x2="32" y2="32">
+      <stop offset="0%" stop-color="#E30613"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#fg)"/>
+  <!-- Stylized network/shield -->
+  <circle cx="16" cy="12" r="3" fill="white"/>
+  <circle cx="10" cy="20" r="2" fill="white" opacity="0.8"/>
+  <circle cx="22" cy="20" r="2" fill="white" opacity="0.8"/>
+  <circle cx="16" cy="26" r="1.5" fill="white" opacity="0.6"/>
+  <line x1="16" y1="12" x2="10" y2="20" stroke="white" stroke-width="1.2" opacity="0.5"/>
+  <line x1="16" y1="12" x2="22" y2="20" stroke="white" stroke-width="1.2" opacity="0.5"/>
+  <line x1="10" y1="20" x2="22" y2="20" stroke="white" stroke-width="0.8" opacity="0.35"/>
+  <line x1="10" y1="20" x2="16" y2="26" stroke="white" stroke-width="0.8" opacity="0.35"/>
+  <line x1="22" y1="20" x2="16" y2="26" stroke="white" stroke-width="0.8" opacity="0.35"/>
 </svg>

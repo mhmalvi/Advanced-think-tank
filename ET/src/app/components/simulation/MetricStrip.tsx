@@ -57,9 +57,9 @@ export function MetricStrip({
     : "never";
 
   return (
-    <div className="border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/50 px-6 py-3 shrink-0">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
+    <div className="border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/50 px-3 sm:px-6 py-2 sm:py-3 shrink-0">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
           {/* Status */}
           <div className="flex items-center gap-2">
             <span className={`size-2 rounded-full ${STATUS_COLORS[healthStatus]}`} />
