@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Activity } from "lucide-react";
+import { Activity, FlaskConical, Zap } from "lucide-react";
 import { useSimulationStore } from "@/stores/simulation";
 import { useStoriesStore } from "@/stores/stories";
 import { MetricStrip } from "@/app/components/simulation/MetricStrip";
@@ -64,19 +64,15 @@ export function SimulationPage() {
     return () => window.removeEventListener("resize", updateHeight);
   }, []);
 
-  // Get selected entity object
   const selectedEntity: Entity | null =
     graph.entities.find((e) => e.id === selectedEntityId) || null;
 
-  // Get metrics related to the selected entity (via stories that mention it)
   const relatedMetrics = selectedEntity
     ? Object.values(metricsByStory)
     : [];
 
-  // Stories that have simulation data
   const simStories = stories.filter((s) => metricsByStory[s.id]);
 
-  // Handle story dot click — filter graph to that story's entities
   const handleStorySelect = useCallback(
     (storyId: string) => {
       setActiveStoryId((prev) => (prev === storyId ? null : storyId));
@@ -124,22 +120,50 @@ export function SimulationPage() {
               height={graphHeight}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full">
-              <Activity className="size-10 text-stone-300 dark:text-stone-600 mb-3" />
-              <p className="text-sm text-stone-500 dark:text-stone-400">
-                No simulation or graph data yet
+            <div className="flex flex-col items-center justify-center h-full px-8">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-[#E30613]/10 rounded-full blur-2xl scale-150" />
+                <div className="relative bg-stone-100 dark:bg-stone-800 rounded-2xl p-6">
+                  <FlaskConical className="size-12 text-[#E30613]" />
+                </div>
+              </div>
+              <h2 className="text-lg font-bold text-stone-900 dark:text-white mb-2">
+                OASIS Simulation Intelligence
+              </h2>
+              <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md text-center mb-6">
+                50 AI agents simulate how geopolitical stories spread, predicting engagement,
+                polarization, and echo chamber formation before they happen.
               </p>
-              <p className="text-xs text-stone-400 mt-1 max-w-sm text-center">
-                Click "Run Simulation" above, or wait for the scheduled 4-hour cycle.
-                The knowledge graph populates as articles are ingested and entities extracted.
+              <button
+                onClick={triggerSimulation}
+                disabled={loading}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#E30613] text-white text-sm font-medium rounded-lg hover:bg-[#c00510] transition-colors disabled:opacity-50"
+              >
+                <Zap className="size-4" />
+                {loading ? "Running Simulation..." : "Run First Simulation"}
+              </button>
+              <p className="text-[10px] text-stone-400 mt-3">
+                Takes ~30-60 seconds. The knowledge graph populates as entities are extracted.
               </p>
+            </div>
+          )}
+
+          {/* Loading overlay on graph */}
+          {loading && hasData && (
+            <div className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-[1px] flex items-center justify-center z-10">
+              <div className="flex items-center gap-3 bg-white dark:bg-stone-900 rounded-lg shadow-lg px-5 py-3 border border-stone-200 dark:border-stone-700">
+                <div className="size-4 border-2 border-[#E30613] border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
+                  Running simulation...
+                </span>
+              </div>
             </div>
           )}
         </div>
 
         {/* Agent activity panel (slide-in) */}
         {showActions && (
-          <div className="w-80 shrink-0">
+          <div className="w-80 shrink-0 border-l border-stone-200 dark:border-stone-800">
             <AgentActivityFeed
               actions={actions}
               onClose={() => setShowActions(false)}

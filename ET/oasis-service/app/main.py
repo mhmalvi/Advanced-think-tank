@@ -7,7 +7,9 @@ generating predictions, and creating analysis reports.
 from __future__ import annotations
 
 import asyncio
+import json as json_lib
 import logging
+from pathlib import Path
 from typing import Optional
 
 import httpx
@@ -43,6 +45,25 @@ app = FastAPI(
 _runs: dict[str, dict] = {}
 _reports: dict[str, dict] = {}
 _actions: dict[str, list[dict]] = {}  # run_id -> list of agent actions
+_ACTIONS_DIR = Path(settings.data_dir) / "actions"
+_ACTIONS_DIR.mkdir(parents=True, exist_ok=True)
+
+def _save_actions(run_id: str, actions: list[dict]) -> None:
+    """Persist actions to disk so they survive container restarts."""
+    _actions[run_id] = actions
+    path = _ACTIONS_DIR / f"{run_id}.json"
+    path.write_text(json_lib.dumps(actions))
+
+def _load_actions(run_id: str) -> list[dict]:
+    """Load actions from memory or disk."""
+    if run_id in _actions:
+        return _actions[run_id]
+    path = _ACTIONS_DIR / f"{run_id}.json"
+    if path.exists():
+        actions = json_lib.loads(path.read_text())
+        _actions[run_id] = actions
+        return actions
+    return []
 
 
 # ── Health ──────────────────────────────────────────────────
@@ -122,17 +143,10 @@ async def get_actions(run_id: str, archetype: Optional[str] = None, story_id: Op
 
     Optional filters: archetype (e.g. 'Analyst'), story_id.
     """
-    actions = _actions.get(run_id, [])
-
-    # Also check by matching run_id in _runs (temp_id -> real run_id mapping)
-    if not actions:
-        for stored_run_id, stored_actions in _actions.items():
-            if stored_run_id in _runs and _runs.get(stored_run_id, {}).get("run_id") == run_id:
-                actions = stored_actions
-                break
+    actions = _load_actions(run_id)
 
     if not actions:
-        raise HTTPException(status_code=404, detail="No actions found for this run. Actions are only available for runs triggered during this session.")
+        raise HTTPException(status_code=404, detail="No actions found for this run.")
 
     if archetype:
         actions = [a for a in actions if a["archetype"].lower() == archetype.lower()]
@@ -350,16 +364,16 @@ async def _run_and_store(
         logger.info(f"Simulation completed: run_id={result['run_id']}, actions={result['total_actions']}")
         run_id = result["run_id"]
 
-        # Store agent actions in memory (keyed by run_id)
-        _actions[run_id] = result.pop("actions", [])
+        # Persist agent actions to disk
+        actions_data = result.pop("actions", [])
+        _save_actions(run_id, actions_data)
 
         # Update in-memory cache
         for temp_id, run_data in list(_runs.items()):
             if run_data["status"] == "pending":
                 _runs[temp_id] = result
                 _runs[run_id] = result
-                # Also map actions under temp_id
-                _actions[temp_id] = _actions[run_id]
+                _save_actions(temp_id, actions_data)
                 break
 
         # Persist to Supabase
