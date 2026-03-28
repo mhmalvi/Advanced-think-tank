@@ -88,12 +88,15 @@ export function ContextPanel({
       className="border-t border-stone-200 dark:border-stone-800 bg-white dark:bg-[#111111] overflow-hidden animate-in slide-in-from-bottom duration-200 shrink-0"
       style={{ height: panelHeight }}
     >
-      {/* Resize handle */}
+      {/* Resize handle — drag up/down to resize panel */}
       <div
-        className="flex justify-center py-1.5 cursor-ns-resize hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors select-none"
+        className="flex flex-col items-center py-1 cursor-ns-resize hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors select-none group"
         onMouseDown={handleMouseDown}
       >
-        <GripHorizontal className="size-4 text-stone-300 dark:text-stone-600" />
+        <div className="w-12 h-1 rounded-full bg-stone-300 dark:bg-stone-600 group-hover:bg-[#E30613] transition-colors" />
+        <span className="text-[8px] text-stone-300 dark:text-stone-600 mt-0.5 group-hover:text-stone-500 transition-colors">
+          drag to resize
+        </span>
       </div>
 
       <div className="overflow-y-auto px-6 pb-4" style={{ height: panelHeight - 32 }}>

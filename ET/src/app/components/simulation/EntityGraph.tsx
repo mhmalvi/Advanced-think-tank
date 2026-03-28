@@ -67,14 +67,32 @@ export function EntityGraph({
     return map;
   }, [relationships]);
 
-  // Which nodes are connected to selected
+  // Multi-hop cluster: all nodes reachable within 2 hops from selected node
   const connectedIds = useMemo(() => {
     if (!selectedEntityId) return null;
     const connected = new Set<string>();
+    const queue: [string, number][] = [[selectedEntityId, 0]];
     connected.add(selectedEntityId);
-    const neighbors = adjacency.get(selectedEntityId);
-    if (neighbors) neighbors.forEach((id) => connected.add(id));
+
+    while (queue.length > 0) {
+      const [nodeId, depth] = queue.shift()!;
+      if (depth >= 2) continue; // 2-hop max
+      const neighbors = adjacency.get(nodeId);
+      if (!neighbors) continue;
+      for (const nid of neighbors) {
+        if (!connected.has(nid)) {
+          connected.add(nid);
+          queue.push([nid, depth + 1]);
+        }
+      }
+    }
     return connected;
+  }, [selectedEntityId, adjacency]);
+
+  // 1-hop direct neighbors (for radial layout positioning)
+  const directNeighborIds = useMemo(() => {
+    if (!selectedEntityId) return new Set<string>();
+    return adjacency.get(selectedEntityId) || new Set<string>();
   }, [selectedEntityId, adjacency]);
 
   // Relationship lookup for labels
@@ -125,68 +143,79 @@ export function EntityGraph({
     const center = graphData.nodes.find((n) => n.id === selectedEntityId) as any;
     if (!center || !Number.isFinite(center.x)) return;
 
-    const neighbors = adjacency.get(selectedEntityId);
-    if (!neighbors || neighbors.size === 0) {
+    if (!connectedIds || connectedIds.size <= 1) {
       graphRef.current.centerAt(center.x, center.y, 500);
       graphRef.current.zoom(2.5, 500);
       return;
     }
 
-    // Wide orbit so labels between nodes are readable
-    const orbitRadius = Math.max(200, neighbors.size * 40);
-    const neighborArr = [...neighbors];
+    // Two orbits: inner ring (1-hop) and outer ring (2-hop)
+    const hop1 = [...directNeighborIds];
+    const hop2 = [...connectedIds].filter(
+      (id) => id !== selectedEntityId && !directNeighborIds.has(id),
+    );
 
-    // Position each neighbor evenly around the center node
-    neighborArr.forEach((nid, i) => {
-      const angle = (2 * Math.PI * i) / neighborArr.length - Math.PI / 2;
-      const targetX = center.x + Math.cos(angle) * orbitRadius;
-      const targetY = center.y + Math.sin(angle) * orbitRadius;
+    const innerRadius = Math.max(180, hop1.length * 35);
+    const outerRadius = innerRadius + Math.max(140, hop2.length * 25);
 
+    // Position 1-hop neighbors in inner ring
+    hop1.forEach((nid, i) => {
+      const angle = (2 * Math.PI * i) / hop1.length - Math.PI / 2;
       const nodeObj = graphData.nodes.find((n) => n.id === nid) as any;
       if (nodeObj) {
-        // Pin the node to the orbital position
-        nodeObj.fx = targetX;
-        nodeObj.fy = targetY;
+        nodeObj.fx = center.x + Math.cos(angle) * innerRadius;
+        nodeObj.fy = center.y + Math.sin(angle) * innerRadius;
       }
     });
 
-    // Pin the center node too
+    // Position 2-hop neighbors in outer ring
+    hop2.forEach((nid, i) => {
+      const angle = (2 * Math.PI * i) / Math.max(1, hop2.length) - Math.PI / 4;
+      const nodeObj = graphData.nodes.find((n) => n.id === nid) as any;
+      if (nodeObj) {
+        nodeObj.fx = center.x + Math.cos(angle) * outerRadius;
+        nodeObj.fy = center.y + Math.sin(angle) * outerRadius;
+      }
+    });
+
+    // Pin center
     center.fx = center.x;
     center.fy = center.y;
 
-    // Reheat to let the layout settle, then zoom to fit the cluster
     graphRef.current.d3ReheatSimulation();
 
     const t = setTimeout(() => {
-      // Zoom to fit just the selected cluster with generous padding
-      const xs = [center.x, ...neighborArr.map((nid) => {
+      // Zoom to fit the whole cluster
+      const allPinned = [...hop1, ...hop2, selectedEntityId];
+      const xs = allPinned.map((nid) => {
         const n = graphData.nodes.find((nn) => nn.id === nid) as any;
-        return n?.fx ?? n?.x ?? 0;
-      })];
-      const ys = [center.y, ...neighborArr.map((nid) => {
+        return n?.fx ?? n?.x ?? center.x;
+      });
+      const ys = allPinned.map((nid) => {
         const n = graphData.nodes.find((nn) => nn.id === nid) as any;
-        return n?.fy ?? n?.y ?? 0;
-      })];
+        return n?.fy ?? n?.y ?? center.y;
+      });
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
       const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
       graphRef.current.centerAt(cx, cy, 500);
 
-      // Zoom level based on orbit size
-      const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+      const span = Math.max(
+        Math.max(...xs) - Math.min(...xs),
+        Math.max(...ys) - Math.min(...ys),
+      );
       const containerH = height || 500;
-      const zoom = Math.min(2.5, Math.max(0.8, (containerH * 0.6) / (span || 300)));
+      const zoom = Math.min(2, Math.max(0.5, (containerH * 0.55) / (span || 400)));
       graphRef.current.zoom(zoom, 500);
-    }, 300);
+    }, 400);
 
     return () => {
       clearTimeout(t);
-      // Unpin all nodes when selection changes
       graphData.nodes.forEach((n: any) => {
         n.fx = undefined;
         n.fy = undefined;
       });
     };
-  }, [selectedEntityId, graphData.nodes, adjacency, height]);
+  }, [selectedEntityId, connectedIds, directNeighborIds, graphData.nodes, height]);
 
   const handleNodeClick = useCallback(
     (node: any) => {
@@ -226,6 +255,8 @@ export function EntityGraph({
       const isSelected = id === selectedEntityId;
       const isHovered = id === hoveredNodeId;
       const isConnected = connectedIds ? connectedIds.has(id) : true;
+      const isDirect = directNeighborIds.has(id);
+      const isSecondHop = isConnected && !isDirect && !isSelected;
       const isPulsing = pulsingIds.includes(id);
       const color = TYPE_COLORS[entityType] || "#78716c";
       const active = isSelected || isHovered;
@@ -256,8 +287,17 @@ export function EntityGraph({
       // ── Circle ──
       ctx.beginPath();
       ctx.arc(x, y, r, 0, 2 * Math.PI);
-      ctx.fillStyle = color;
+      ctx.fillStyle = isSecondHop ? `${color}88` : color;
       ctx.fill();
+
+      // 2-hop indicator: dashed outer ring
+      if (isSecondHop && connectedIds) {
+        ctx.strokeStyle = `${color}40`;
+        ctx.lineWidth = 1 / globalScale;
+        ctx.setLineDash([3 / globalScale, 3 / globalScale]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
 
       // ── Selection / hover ring ──
       if (active) {
@@ -327,6 +367,7 @@ export function EntityGraph({
       selectedEntityId,
       hoveredNodeId,
       connectedIds,
+      directNeighborIds,
       pulsingIds,
       relMap,
       isDark,
@@ -479,7 +520,8 @@ export function EntityGraph({
   }
 
   const activeTypes = [...new Set(entities.map((e) => e.entity_type))].sort();
-  const neighborCount = connectedIds ? connectedIds.size - 1 : 0;
+  const hop1Count = directNeighborIds.size;
+  const hop2Count = connectedIds ? connectedIds.size - 1 - hop1Count : 0;
 
   return (
     <div ref={containerRef} className="relative w-full" style={{ height, cursor: "grab" }}>
@@ -563,7 +605,7 @@ export function EntityGraph({
         {selectedEntityId && (
           <div className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm">
             <span className="text-[9px] text-stone-400 dark:text-stone-500">
-              {neighborCount} connected &middot; Click background to unfocus
+              {hop1Count} direct{hop2Count > 0 ? ` + ${hop2Count} extended` : ""} &middot; Click background to unfocus
             </span>
           </div>
         )}
