@@ -7,9 +7,12 @@ import { useState, useRef, useCallback } from "react";
 import { X, AlertTriangle, GripHorizontal } from "lucide-react";
 import { EngagementCard } from "./EngagementCard";
 import { PropagationCard } from "./PropagationCard";
+import { SankeyFlow } from "./SankeyFlow";
 import { WhatIfCard } from "./WhatIfCard";
 import { PolarizationGauge } from "./PolarizationGauge";
 import { Heatmap } from "./Heatmap";
+import { useSimulationStore } from "@/stores/simulation";
+import { useStoriesStore } from "@/stores/stories";
 import type { Entity, StoryMetric } from "@/types/simulation";
 
 interface ContextPanelProps {
@@ -52,7 +55,16 @@ export function ContextPanel({
     [panelHeight],
   );
 
+  const metricsByStory = useSimulationStore((s) => s.metricsByStory);
+  const stories = useStoriesStore((s) => s.stories);
+
   if (!entity) return null;
+
+  // Build story title lookup for Sankey
+  const storyTitles: Record<string, string> = {};
+  for (const s of stories) {
+    storyTitles[s.id] = s.title;
+  }
 
   const aggregatedMetric: StoryMetric | null =
     relatedMetrics.length > 0
@@ -152,6 +164,9 @@ export function ContextPanel({
               </div>
               <div className="col-span-1 md:col-span-3">
                 <Heatmap />
+              </div>
+              <div className="col-span-1 md:col-span-3">
+                <SankeyFlow metricsByStory={metricsByStory} storyTitles={storyTitles} />
               </div>
             </>
           ) : (

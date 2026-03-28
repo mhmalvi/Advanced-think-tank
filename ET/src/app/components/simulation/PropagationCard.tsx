@@ -1,18 +1,17 @@
 /**
- * PropagationCard — horizontal bar chart showing engagement by agent archetype.
+ * PropagationCard — animated horizontal bar chart showing engagement by agent archetype.
+ * Bars animate in with staggered delays when the component mounts.
  */
 
-import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from "recharts";
+import { useState, useEffect } from "react";
 
 interface PropagationCardProps {
-  /** Engagement rates per archetype (0-1). */
   archetypeData?: {
     name: string;
     engagement: number;
   }[];
 }
 
-/** Default archetype engagement (used when real per-archetype data isn't available). */
 const DEFAULT_ARCHETYPES = [
   { name: "Analyst", engagement: 0.89 },
   { name: "Investor", engagement: 0.61 },
@@ -22,10 +21,23 @@ const DEFAULT_ARCHETYPES = [
   { name: "Public", engagement: 0.23 },
 ];
 
-const COLORS = ["#E30613", "#dc2626", "#ea580c", "#d97706", "#ca8a04", "#65a30d"];
+const COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ec4899",
+];
 
 export function PropagationCard({ archetypeData }: PropagationCardProps) {
   const data = archetypeData || DEFAULT_ARCHETYPES;
+  const [animated, setAnimated] = useState(false);
+
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setAnimated(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
 
   return (
     <div className="p-3 rounded border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900">
@@ -33,30 +45,66 @@ export function PropagationCard({ archetypeData }: PropagationCardProps) {
         Propagation by Archetype
       </h4>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {data.map((item, i) => {
           const pct = Math.round(item.engagement * 100);
           return (
             <div key={item.name} className="flex items-center gap-2">
-              <span className="text-[10px] text-stone-500 w-16 text-right shrink-0">
-                {item.name}
-              </span>
-              <div className="flex-1 h-3 bg-stone-100 dark:bg-stone-800 rounded-full overflow-hidden">
+              {/* Archetype name with color dot */}
+              <div className="flex items-center gap-1.5 w-20 shrink-0">
+                <span
+                  className="size-2 rounded-full shrink-0"
+                  style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                />
+                <span className="text-[10px] text-stone-600 dark:text-stone-300 truncate">
+                  {item.name}
+                </span>
+              </div>
+
+              {/* Animated bar */}
+              <div className="flex-1 h-4 bg-stone-100 dark:bg-stone-800 rounded overflow-hidden relative">
                 <div
-                  className="h-full rounded-full transition-all duration-500"
+                  className="h-full rounded transition-all ease-out"
                   style={{
-                    width: `${pct}%`,
+                    width: animated ? `${pct}%` : "0%",
                     backgroundColor: COLORS[i % COLORS.length],
+                    transitionDuration: `${600 + i * 100}ms`,
+                    transitionDelay: `${i * 80}ms`,
                   }}
                 />
+                {/* Shimmer animation on the bar */}
+                {animated && (
+                  <div
+                    className="absolute inset-0 overflow-hidden rounded"
+                    style={{ width: `${pct}%` }}
+                  >
+                    <div
+                      className="absolute inset-0 -translate-x-full animate-[shimmer_2s_ease-in-out_infinite]"
+                      style={{
+                        background: `linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)`,
+                        animationDelay: `${i * 200}ms`,
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-              <span className="text-[10px] font-bold text-stone-700 dark:text-stone-300 w-8 shrink-0">
+
+              {/* Percentage */}
+              <span className="text-[10px] font-bold text-stone-700 dark:text-stone-300 w-8 text-right shrink-0">
                 {pct}%
               </span>
             </div>
           );
         })}
       </div>
+
+      {/* CSS animation */}
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(200%); }
+        }
+      `}</style>
     </div>
   );
 }
