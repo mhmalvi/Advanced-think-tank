@@ -146,6 +146,9 @@ export type Database = {
           content_hash: string | null;
           timeline_entries: TimelineEntry[];
           confidence_score: number;
+          sim_engagement_rate: number | null;
+          sim_predicted_virality: number | null;
+          sim_polarization_flag: boolean;
           image_url: string | null;
           created_at: string;
           updated_at: string;

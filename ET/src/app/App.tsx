@@ -44,6 +44,9 @@ const HistorySettings = lazy(() => import("@/pages/HistorySettings").then((m) =>
 const AiProfileSettings = lazy(() =>
   import("@/pages/AiProfileSettings").then((m) => ({ default: m.AiProfileSettings })),
 );
+const SimulationPage = lazy(() =>
+  import("@/pages/SimulationPage").then((m) => ({ default: m.SimulationPage })),
+);
 
 function DashboardLayout() {
   const leftNavOpen = useAppStore((s) => s.leftNavOpen);
@@ -164,6 +167,7 @@ export default function App() {
                   <Route path="/bookmarks" element={<BookmarksSettings />} />
                   <Route path="/history" element={<HistorySettings />} />
                   <Route path="/analyst" element={<AnalystPage />} />
+                  <Route path="/simulation" element={<SimulationPage />} />
                   <Route path="/settings" element={<SettingsLayout />}>
                     <Route path="profile" element={<UserProfileSettings />} />
                     <Route path="company" element={<CompanySettings />} />

@@ -8,6 +8,7 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { useMemo } from "react";
+import { SimulationPulse } from "@/app/components/simulation/SimulationPulse";
 import { useLocaleStore } from "@/stores/locale";
 import { useAppStore } from "@/stores/app";
 import { relativeTime } from "@/lib/utils";
@@ -211,7 +212,7 @@ export function RightSidebar({ collapsed = false }: RightSidebarProps) {
         </div>
 
         {/* Quick Stats */}
-        <div className="p-2.5 bg-white dark:bg-stone-950 rounded border border-stone-200 dark:border-stone-700">
+        <div className="mb-4 p-2.5 bg-white dark:bg-stone-950 rounded border border-stone-200 dark:border-stone-700">
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <span className="text-[10px] text-stone-500 dark:text-stone-400 uppercase tracking-wide">
@@ -233,6 +234,9 @@ export function RightSidebar({ collapsed = false }: RightSidebarProps) {
             </div>
           </div>
         </div>
+
+        {/* Simulation Pulse */}
+        <SimulationPulse />
       </div>
     </aside>
   );

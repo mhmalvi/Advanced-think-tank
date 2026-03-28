@@ -3,6 +3,7 @@ import { ExternalLink, ChevronUp, ChevronDown, Search, Database, ToggleLeft, Tog
 import { supabase } from "@/lib/supabase";
 import { formatPublicationDate } from "@/lib/utils";
 import { useLocaleStore } from "@/stores/locale";
+import { SimScoreCell } from "@/app/components/simulation/SimScoreCell";
 import { useSettingsStore } from "@/stores/settings";
 
 type ArticleRow = {
@@ -289,6 +290,7 @@ export function SourcesPage() {
                     >
                       Region {sortIcon("region")}
                     </th>
+                    <th className="px-4 py-3 text-left font-medium text-stone-500">Sim</th>
                     <th className="px-4 py-3 text-left font-medium text-stone-500">Topics</th>
                     <th className="px-4 py-3 text-center font-medium text-stone-500">Status</th>
                   </tr>
@@ -296,13 +298,13 @@ export function SourcesPage() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-stone-400">
+                      <td colSpan={8} className="px-4 py-8 text-center text-stone-400">
                         Loading...
                       </td>
                     </tr>
                   ) : articles.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-8 text-center text-stone-400">
+                      <td colSpan={8} className="px-4 py-8 text-center text-stone-400">
                         No articles found
                       </td>
                     </tr>
@@ -336,6 +338,9 @@ export function SourcesPage() {
                               {article.region}
                             </span>
                           )}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <SimScoreCell storyId={(article as any).story_id ?? null} />
                         </td>
                         <td className="px-4 py-2.5">
                           <div className="flex flex-wrap gap-1">

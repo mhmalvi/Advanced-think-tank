@@ -1,4 +1,5 @@
 import { Search, X, Loader2, Clock } from "lucide-react";
+import { SimulationHints } from "@/app/components/simulation/SimulationHints";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocaleStore } from "@/stores/locale";
@@ -86,7 +87,8 @@ export function SearchBar() {
     inputRef.current?.focus();
   };
 
-  const showDropdown = focused && recentSearches.length > 0 && !query.trim();
+  const showDropdown = focused && !query.trim();
+  const showRecent = recentSearches.length > 0;
 
   return (
     <div className="border-b border-stone-200 dark:border-stone-800 bg-white dark:bg-[#0a0a0b]" ref={wrapperRef}>
@@ -127,9 +129,11 @@ export function SearchBar() {
           </div>
         </form>
 
-        {/* Recent searches dropdown */}
+        {/* Search dropdown with simulation hints + recent searches */}
         {showDropdown && (
           <div className="absolute z-50 left-6 right-6 md:left-10 md:right-10 lg:left-16 lg:right-16 top-full mt-1 bg-white dark:bg-[#0a0a0b] border border-stone-200 dark:border-stone-700 rounded-md shadow-lg overflow-hidden">
+            <SimulationHints onSelect={() => setFocused(false)} />
+            {showRecent && (<>
             <div className="px-4 py-2 text-[10px] font-medium uppercase tracking-wider text-stone-400">
               {t.search?.recentSearches ?? "Recent"}
             </div>
@@ -143,6 +147,7 @@ export function SearchBar() {
                 <span className="truncate">{text}</span>
               </button>
             ))}
+            </>)}
           </div>
         )}
 

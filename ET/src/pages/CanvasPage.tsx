@@ -13,6 +13,7 @@ import {
   Newspaper,
 } from "lucide-react";
 import DOMPurify from "dompurify";
+import { StoryIntelligenceBar } from "@/app/components/simulation/StoryIntelligenceBar";
 import { useCanvasStore } from "@/stores/canvas";
 import { useInteractionsStore } from "@/stores/interactions";
 import { useLocaleStore } from "@/stores/locale";
@@ -187,7 +188,14 @@ function ChatPanel() {
     }
   };
 
-  const suggestedPrompts = [t.canvas.suggestSummarize, t.canvas.suggestImpact, t.canvas.suggestBackground];
+  const suggestedPrompts = [
+    t.canvas.suggestSummarize,
+    t.canvas.suggestImpact,
+    t.canvas.suggestBackground,
+    "How would different analyst personas react to this story?",
+    "Show me the key entities and relationships in this story",
+    "What if the main event in this story escalates further?",
+  ];
 
   return (
     <div className="flex flex-col h-full border-r border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-950">
@@ -649,6 +657,9 @@ function StoryPanel() {
           </div>
         </div>
       </div>
+
+      {/* Simulation intelligence bar */}
+      <StoryIntelligenceBar storyId={currentStory.id} />
 
       {/* Story content */}
       <div className="flex-1 overflow-y-auto p-6 md:p-8">

@@ -17,6 +17,7 @@ import {
   Sparkles,
   Database,
   ChevronDown,
+  FlaskConical,
 } from "lucide-react";
 
 export function LandingPage() {
@@ -299,6 +300,12 @@ export function LandingPage() {
                 title={t.landing.featureLensesTitle}
                 description={t.landing.featureLensesDesc}
                 accent={false}
+              />
+              <FeatureCard
+                icon={<FlaskConical className="size-5" />}
+                title="Predictive Intelligence"
+                description="50 AI agents simulate how stories spread — predicting engagement, polarization, and impact before they happen."
+                accent
               />
             </div>
           </div>

@@ -1,0 +1,180 @@
+{
+  "name": "Advanced Think Tank OASIS Simulation Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "name": "Schedule (4h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "att-simulate",
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL || 'https://qwknvxpzmkkmeeziumok.supabase.co' }}/rest/v1/stories",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "select", "value": "id" },
+            { "name": "order", "value": "created_at.desc" },
+            { "name": "limit", "value": "20" },
+            { "name": "created_at", "value": "gte.{{ new Date(Date.now() - 6*60*60*1000).toISOString() }}" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "fullResponse": false } }
+        }
+      },
+      "name": "Fetch Recent Stories",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zuMU2F88Q386o7NP",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const stories = $input.all().map(item => item.json);\nconst storyIds = stories.map(s => s.id);\n\nif (storyIds.length === 0) {\n  return [{ json: { skip: true, reason: 'No recent stories' } }];\n}\n\nreturn [{ json: { story_ids: storyIds, agent_count: 50, simulation_steps: 3 } }];"
+      },
+      "name": "Build Simulate Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "name": "Has Stories?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://oasis:8100/simulate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "story_ids", "value": "={{ $json.story_ids }}" },
+            { "name": "agent_count", "value": "={{ $json.agent_count }}" },
+            { "name": "simulation_steps", "value": "={{ $json.simulation_steps }}" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "fullResponse": false } },
+          "timeout": 10000
+        }
+      },
+      "name": "POST /simulate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Poll for results: wait 15s then check\nconst runId = $input.first().json.run_id;\nlet attempts = 0;\nconst maxAttempts = 20;\nconst pollInterval = 15000;\n\nwhile (attempts < maxAttempts) {\n  await new Promise(resolve => setTimeout(resolve, pollInterval));\n  attempts++;\n  \n  try {\n    const response = await fetch(`http://oasis:8100/results/${runId}`);\n    const data = await response.json();\n    \n    if (data.status === 'completed') {\n      return [{ json: data }];\n    } else if (data.status === 'failed') {\n      return [{ json: { error: data.error_message || 'Simulation failed', run_id: runId } }];\n    }\n  } catch (e) {\n    // Continue polling\n  }\n}\n\nreturn [{ json: { error: 'Timeout waiting for simulation', run_id: runId } }];"
+      },
+      "name": "Poll Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1500, 500]
+    },
+    {
+      "parameters": {},
+      "name": "No-Op (No Stories)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1100, 500]
+    }
+  ],
+  "connections": {
+    "Schedule (4h)": {
+      "main": [
+        [{ "node": "Fetch Recent Stories", "type": "main", "index": 0 }]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [{ "node": "Fetch Recent Stories", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Recent Stories": {
+      "main": [
+        [{ "node": "Build Simulate Request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Simulate Request": {
+      "main": [
+        [{ "node": "Has Stories?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Stories?": {
+      "main": [
+        [{ "node": "POST /simulate", "type": "main", "index": 0 }],
+        [{ "node": "No-Op (No Stories)", "type": "main", "index": 0 }]
+      ]
+    },
+    "POST /simulate": {
+      "main": [
+        [{ "node": "Poll Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Poll Results": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

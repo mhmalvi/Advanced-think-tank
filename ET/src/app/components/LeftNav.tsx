@@ -13,6 +13,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useAppStore } from "@/stores/app";
 import { useStoriesStore } from "@/stores/stories";
 import { useLocaleStore } from "@/stores/locale";
+import { SimulationSection } from "@/app/components/simulation/SimulationSection";
 
 interface LeftNavProps {
   collapsed?: boolean;
@@ -68,6 +69,7 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
             </Link>
           );
         })}
+        <SimulationSection collapsed />
       </aside>
     );
   }
@@ -146,6 +148,9 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
             </ul>
           </div>
         )}
+
+        {/* Simulation intelligence */}
+        <SimulationSection />
       </nav>
     </aside>
   );
