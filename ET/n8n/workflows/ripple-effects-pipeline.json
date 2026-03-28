@@ -1,0 +1,126 @@
+{
+  "id": "ripple-effects-pipeline",
+  "name": "Advanced Think Tank Ripple Effects Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "att-ripple-effects",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "id": "ripple-webhook",
+      "webhookId": "att-ripple-effects"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract key themes from the story for cross-domain search\nconst input = $input.first().json;\nconst storyContent = input.body?.story_content || '';\nconst storyLabels = input.body?.story_labels || [];\nconst storyId = input.body?.story_id || '';\n\n// Extract topic labels for search\nconst topics = storyLabels\n  .filter(l => l.type === 'ai' || l.type === 'editorial')\n  .map(l => l.text)\n  .join(', ');\n\n// Build search query from content + topics\nconst searchQuery = `Cross-domain connections: ${topics}. ${storyContent.substring(0, 500)}`;\n\nreturn [{ json: { storyId, storyContent, topics, searchQuery, storyLabels } }];"
+      },
+      "name": "Extract Themes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300],
+      "id": "extract-themes"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://advanced-think-tank-fq9hhsz.svc.aped-4627-b74a.pinecone.io/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ namespace: 'articles', topK: 10, includeMetadata: true, inputs: { text: $json.searchQuery } }) }}",
+        "options": {}
+      },
+      "name": "Search Pinecone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [690, 300],
+      "id": "search-pinecone",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "zahj6NSfAvBycdRM",
+          "name": "Pinecone API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter results to exclude same-topic articles and build LLM prompt\nconst input = $('Extract Themes').first().json;\nconst pineconeResult = $input.first().json;\n\nconst matches = (pineconeResult.result || pineconeResult.matches || [])\n  .filter(m => m.metadata)\n  .map(m => ({\n    id: m.id,\n    title: m.metadata.title || '',\n    source: m.metadata.source || '',\n    content: (m.metadata.content || '').substring(0, 500),\n    topic_tags: m.metadata.topic_tags || [],\n    score: m.score || 0\n  }))\n  // Filter out articles with same topics as the story\n  .filter(m => {\n    const storyTopics = input.topics.toLowerCase().split(', ');\n    const articleTopics = (m.topic_tags || []).map(t => t.toLowerCase());\n    const overlap = storyTopics.filter(t => articleTopics.includes(t));\n    return overlap.length < storyTopics.length; // Must have DIFFERENT topics\n  })\n  .slice(0, 5);\n\nif (matches.length === 0) {\n  return [{ json: { connections: [] } }];\n}\n\nconst articlesText = matches.map((a, i) => \n  `Article ${i+1}: \"${a.title}\" (${a.source})\\n${a.content}`\n).join('\\n\\n');\n\nreturn [{ json: { \n  storyContent: input.storyContent,\n  topics: input.topics,\n  articlesText,\n  matches,\n  hasMatches: true\n} }];"
+      },
+      "name": "Filter Cross-Domain",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [910, 300],
+      "id": "filter-cross-domain"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1024, messages: [{ role: 'user', content: `Given this main story and potentially related articles from other domains, identify 0-3 genuinely relevant cross-domain connections.\\n\\nMain story topics: ${$json.topics}\\nMain story: ${$json.storyContent.substring(0, 1000)}\\n\\nRelated articles from different domains:\\n${$json.articlesText}\\n\\nFor each connection return JSON array:\\n[{\"title\": \"headline\", \"connection_summary\": \"2-3 sentences\", \"impact\": \"what to watch\", \"source_article_id\": \"ref\", \"labels\": [{\"type\": \"ai\", \"text\": \"topic\", \"reason\": \"why\"}], \"confidence\": 0.0-1.0}]\\n\\nCRITICAL: Only confidence >0.7. If nothing relevant, return []. NEVER force connections. Return JSON array only.` }] }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "name": "Claude Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1130, 300],
+      "id": "claude-analysis",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anthropic-key",
+          "name": "Anthropic API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude response and return connections\nconst hasMatches = $('Filter Cross-Domain').first().json.hasMatches;\nif (!hasMatches) return [{ json: { connections: [] } }];\n\ntry {\n  const response = $input.first().json;\n  const text = response.content?.[0]?.text || '[]';\n  let cleaned = text.trim();\n  if (cleaned.startsWith('```')) cleaned = cleaned.split('\\n', 2)[1].split('```')[0].trim();\n  const connections = JSON.parse(cleaned);\n  return [{ json: { connections: Array.isArray(connections) ? connections : [] } }];\n} catch (e) {\n  return [{ json: { connections: [] } }];\n}"
+      },
+      "name": "Parse Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1350, 300],
+      "id": "parse-response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1570, 300],
+      "id": "respond"
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Extract Themes", "type": "main", "index": 0 }]] },
+    "Extract Themes": { "main": [[{ "node": "Search Pinecone", "type": "main", "index": 0 }]] },
+    "Search Pinecone": { "main": [[{ "node": "Filter Cross-Domain", "type": "main", "index": 0 }]] },
+    "Filter Cross-Domain": { "main": [[{ "node": "Claude Analysis", "type": "main", "index": 0 }]] },
+    "Claude Analysis": { "main": [[{ "node": "Parse Response", "type": "main", "index": 0 }]] },
+    "Parse Response": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "description": "Cross-domain ripple effect detection: finds related stories from different topics using Pinecone semantic search + Claude analysis." }
+}

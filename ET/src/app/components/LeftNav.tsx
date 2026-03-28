@@ -8,12 +8,77 @@ import {
   Clock,
   Newspaper,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { ImageWithFallback } from "@/app/components/figma/ImageWithFallback";
 import { Link, useLocation } from "react-router-dom";
 import { useAppStore } from "@/stores/app";
 import { useStoriesStore } from "@/stores/stories";
 import { useLocaleStore } from "@/stores/locale";
+import { useAuthStore } from "@/stores/auth";
+import { supabase } from "@/lib/supabase";
 import { SimulationSection } from "@/app/components/simulation/SimulationSection";
+
+function RecentSessions() {
+  const user = useAuthStore((s) => s.user);
+  const [sessions, setSessions] = useState<{ id: string; story_id: string; title: string; updated_at: string }[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("canvas_sessions")
+      .select("id, story_id, updated_at, stories(title)")
+      .eq("user_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => {
+        if (data) {
+          setSessions(
+            data.map((s: any) => ({
+              id: s.id,
+              story_id: s.story_id,
+              title: s.stories?.title || "Untitled",
+              updated_at: s.updated_at,
+            })),
+          );
+        }
+      });
+  }, [user]);
+
+  if (sessions.length === 0) return null;
+
+  const timeAgo = (d: string) => {
+    const ms = Date.now() - new Date(d).getTime();
+    const m = Math.floor(ms / 60000);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  };
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-2 px-1 mb-1.5 text-stone-900 dark:text-stone-100">
+        <Clock className="size-3.5" />
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider">Recent</h2>
+      </div>
+      <ul className="space-y-0.5">
+        {sessions.map((s) => (
+          <li key={s.id}>
+            <Link
+              to={`/canvas/${s.story_id}?session=${s.id}`}
+              className="w-full text-left px-2 py-1.5 text-xs text-stone-600 dark:text-stone-300 hover:text-black dark:hover:text-white hover:bg-stone-200 dark:hover:bg-stone-800 rounded flex items-start gap-2 transition-colors"
+            >
+              <div className="min-w-0 flex-1">
+                <span className="line-clamp-1 leading-tight">{s.title}</span>
+                <span className="text-[10px] text-stone-400 dark:text-stone-600 block">{timeAgo(s.updated_at)}</span>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 interface LeftNavProps {
   collapsed?: boolean;
@@ -146,6 +211,9 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
             </ul>
           </div>
         )}
+
+        {/* Recent canvas sessions */}
+        <RecentSessions />
 
         {/* Simulation intelligence */}
         <SimulationSection />

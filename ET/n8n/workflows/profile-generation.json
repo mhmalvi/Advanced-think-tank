@@ -1,0 +1,117 @@
+{
+  "id": "profile-generation",
+  "name": "Advanced Think Tank AI Profile Generation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "att-profile-generate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "id": "profile-webhook",
+      "webhookId": "att-profile-generate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the LLM prompt from user data\nconst input = $input.first().json;\nconst body = input.body || input;\nconst userId = body.user_id || '';\nconst preferences = body.preferences || [];\nconst interactions = body.recent_interactions || [];\nconst overrides = body.overrides || [];\n\n// Format preferences\nconst prefsText = preferences.map(p => `${p.preference_type}: ${p.preference_value}`).join('\\n');\n\n// Format interactions\nconst likedTopics = interactions.filter(i => i.interaction_type === 'like').map(i => i.cluster_topic || 'unknown').join(', ');\nconst dislikedTopics = interactions.filter(i => i.interaction_type === 'dislike').map(i => i.cluster_topic || 'unknown').join(', ');\n\n// Format overrides (excluded items)\nconst excludeText = overrides.length > 0 ? overrides.join(', ') : 'none';\n\nconst prompt = `Based on this user's explicit preferences and behavioral data, generate a structured JSON profile.\n\nExplicit preferences:\n${prefsText || 'none set'}\n\nRecent likes: ${likedTopics || 'none'}\nRecent dislikes: ${dislikedTopics || 'none'}\nItems to EXCLUDE (user manually removed): ${excludeText}\n\nReturn JSON only, no preamble:\n{\n  \"inferred_interests\": [\"topic1\", \"topic2\"],\n  \"avoided_topics\": [\"topic3\"],\n  \"preferred_depth\": \"deep_analysis\" | \"quick_scan\" | \"balanced\",\n  \"geographic_focus\": [\"region1\", \"region2\"],\n  \"industry_focus\": [\"industry1\"],\n  \"lens_preferences\": [\"lens1\"]\n}`;\n\nreturn [{ json: { userId, prompt } }];"
+      },
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [470, 300],
+      "id": "build-prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 512, messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "options": { "timeout": 20000 }
+      },
+      "name": "Claude Generate Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [690, 300],
+      "id": "claude-profile",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "anthropic-key",
+          "name": "Anthropic API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Claude response and upsert to ai_user_profiles\nconst userId = $('Build Prompt').first().json.userId;\nconst response = $input.first().json;\n\nlet profile;\ntry {\n  let text = response.content?.[0]?.text || '{}';\n  if (text.startsWith('```')) text = text.split('\\n', 2)[1].split('```')[0].trim();\n  profile = JSON.parse(text);\n} catch (e) {\n  profile = {\n    inferred_interests: [],\n    avoided_topics: [],\n    preferred_depth: 'balanced',\n    geographic_focus: [],\n    industry_focus: [],\n    lens_preferences: []\n  };\n}\n\nreturn [{ json: { userId, profile } }];"
+      },
+      "name": "Parse Profile",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [910, 300],
+      "id": "parse-profile"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://qwknvxpzmkkmeeziumok.supabase.co/rest/v1/ai_user_profiles",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3a252eHB6bWtrbWVleml1bW9rIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDY0OTM5NywiZXhwIjoyMDkwMjI1Mzk3fQ.UrvSK5h_MUPJs5TK3K08zTGJrvfQR_DB315_kVCXNGA" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "resolution=merge-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_id: $json.userId, profile_summary: $json.profile, preference_overrides: [], last_generated_at: new Date().toISOString(), version: 1 }) }}",
+        "options": {}
+      },
+      "name": "Upsert Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1130, 300],
+      "id": "upsert-profile",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, profile: $('Parse Profile').first().json.profile }) }}"
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1350, 300],
+      "id": "respond"
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Build Prompt", "type": "main", "index": 0 }]] },
+    "Build Prompt": { "main": [[{ "node": "Claude Generate Profile", "type": "main", "index": 0 }]] },
+    "Claude Generate Profile": { "main": [[{ "node": "Parse Profile", "type": "main", "index": 0 }]] },
+    "Parse Profile": { "main": [[{ "node": "Upsert Profile", "type": "main", "index": 0 }]] },
+    "Upsert Profile": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "description": "Generates AI user profiles from preferences + interactions using Claude. Called after onboarding and every 5th interaction." }
+}
