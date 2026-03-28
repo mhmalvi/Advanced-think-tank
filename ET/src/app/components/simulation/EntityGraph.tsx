@@ -118,16 +118,75 @@ export function EntityGraph({
     return () => clearTimeout(t);
   }, [graphData]);
 
-  // Focus mode: zoom to selected node
+  // Focus mode: spread connected nodes into a radial orbit around the selected node
   useEffect(() => {
-    if (selectedEntityId && graphRef.current) {
-      const node = graphData.nodes.find((n) => n.id === selectedEntityId);
-      if (node && Number.isFinite((node as any).x)) {
-        graphRef.current.centerAt((node as any).x, (node as any).y, 500);
-        graphRef.current.zoom(2.2, 500);
-      }
+    if (!selectedEntityId || !graphRef.current) return;
+
+    const center = graphData.nodes.find((n) => n.id === selectedEntityId) as any;
+    if (!center || !Number.isFinite(center.x)) return;
+
+    const neighbors = adjacency.get(selectedEntityId);
+    if (!neighbors || neighbors.size === 0) {
+      graphRef.current.centerAt(center.x, center.y, 500);
+      graphRef.current.zoom(2.5, 500);
+      return;
     }
-  }, [selectedEntityId, graphData.nodes]);
+
+    // Calculate orbit radius based on neighbor count (more neighbors = wider orbit)
+    const orbitRadius = Math.max(120, neighbors.size * 28);
+    const neighborArr = [...neighbors];
+
+    // Position each neighbor evenly around the center node
+    neighborArr.forEach((nid, i) => {
+      const angle = (2 * Math.PI * i) / neighborArr.length - Math.PI / 2;
+      const targetX = center.x + Math.cos(angle) * orbitRadius;
+      const targetY = center.y + Math.sin(angle) * orbitRadius;
+
+      const nodeObj = graphData.nodes.find((n) => n.id === nid) as any;
+      if (nodeObj) {
+        // Pin the node to the orbital position
+        nodeObj.fx = targetX;
+        nodeObj.fy = targetY;
+      }
+    });
+
+    // Pin the center node too
+    center.fx = center.x;
+    center.fy = center.y;
+
+    // Reheat to let the layout settle, then zoom to fit the cluster
+    graphRef.current.d3ReheatSimulation();
+
+    const t = setTimeout(() => {
+      // Zoom to fit just the selected cluster with generous padding
+      const xs = [center.x, ...neighborArr.map((nid) => {
+        const n = graphData.nodes.find((nn) => nn.id === nid) as any;
+        return n?.fx ?? n?.x ?? 0;
+      })];
+      const ys = [center.y, ...neighborArr.map((nid) => {
+        const n = graphData.nodes.find((nn) => nn.id === nid) as any;
+        return n?.fy ?? n?.y ?? 0;
+      })];
+      const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+      graphRef.current.centerAt(cx, cy, 500);
+
+      // Zoom level based on orbit size
+      const span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+      const containerH = height || 500;
+      const zoom = Math.min(2.5, Math.max(0.8, (containerH * 0.6) / (span || 300)));
+      graphRef.current.zoom(zoom, 500);
+    }, 300);
+
+    return () => {
+      clearTimeout(t);
+      // Unpin all nodes when selection changes
+      graphData.nodes.forEach((n: any) => {
+        n.fx = undefined;
+        n.fy = undefined;
+      });
+    };
+  }, [selectedEntityId, graphData.nodes, adjacency, height]);
 
   const handleNodeClick = useCallback(
     (node: any) => {
