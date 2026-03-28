@@ -48,8 +48,8 @@ export function EntityGraph({
   height = 500,
 }: EntityGraphProps) {
   const graphRef = useRef<any>(null);
-  const isDark =
-    typeof document !== "undefined" &&
+  // Check dark mode on each render (class may change)
+  const isDark = typeof document !== "undefined" &&
     document.documentElement.classList.contains("dark");
 
   const graphData = useMemo(() => {
@@ -189,7 +189,7 @@ export function EntityGraph({
         const pillY = y + baseRadius + 3 / globalScale;
         ctx.fillStyle = isDark ? "rgba(10,10,11,0.8)" : "rgba(255,255,255,0.85)";
         ctx.beginPath();
-        ctx.roundRect(
+        ctx.rect(
           x - textWidth / 2 - padding,
           pillY - 1 / globalScale,
           textWidth + padding * 2,
@@ -216,7 +216,7 @@ export function EntityGraph({
           const by = pillY + fontSize + 2 / globalScale;
           ctx.fillStyle = `${color}20`;
           ctx.beginPath();
-          ctx.roundRect(bx, by, bw + 4 / globalScale, badgeFontSize + 2 / globalScale, 2 / globalScale);
+          ctx.rect(bx, by, bw + 4 / globalScale, badgeFontSize + 2 / globalScale, 2 / globalScale);
           ctx.fill();
           ctx.fillStyle = color;
           ctx.textBaseline = "top";

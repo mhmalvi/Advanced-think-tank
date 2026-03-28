@@ -136,13 +136,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         .limit(1);
 
       if (!runs || runs.length === 0) {
-        // Fall back to seed data for new users
-        set({
-          latestRun: SEED_RUN,
-          recentRuns: SEED_RECENT_RUNS,
-          healthStatus: deriveHealth(SEED_RUN),
-          loading: false,
-        });
+        set({ loading: false });
         return;
       }
 
@@ -291,6 +285,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   },
 
   triggerSimulation: async () => {
+    // Remember the current latest run so we can detect a NEW one
+    const prevRunId = get().latestRun?.run_id ?? "";
     set({ loading: true, error: null });
     try {
       const resp = await fetch(`${WEBHOOK_BASE}/att-simulate`, {
@@ -301,18 +297,19 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
       if (!resp.ok) {
         throw new Error(`Simulation trigger failed (${resp.status})`);
       }
-      // Simulation runs async in the background (~30-60s).
-      // Poll for results every 10s for up to 2 minutes.
+      // Simulation runs async (~30-60s). Poll for a NEW completed run.
       let attempts = 0;
       const poll = setInterval(async () => {
         attempts++;
         try {
           await get().fetchLatest();
           const run = get().latestRun;
+          // Only stop when we see a DIFFERENT completed run
           if (
             run &&
-            !run.run_id.startsWith("seed-") &&
-            run.status === "completed"
+            run.status === "completed" &&
+            run.run_id !== prevRunId &&
+            !run.run_id.startsWith("seed-")
           ) {
             clearInterval(poll);
             set({ loading: false });
@@ -322,7 +319,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         } catch {
           // ignore poll errors
         }
-        if (attempts >= 12) {
+        if (attempts >= 18) {
+          // 3 minutes max
           clearInterval(poll);
           set({ loading: false });
         }
