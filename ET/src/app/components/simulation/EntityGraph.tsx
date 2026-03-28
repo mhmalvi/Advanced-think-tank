@@ -1,9 +1,9 @@
 /**
  * EntityGraph — interactive force-directed knowledge graph.
  *
- * Node sizes = mention count. Colors = entity type.
- * Click a node to select it → ContextPanel slides up.
- * Hover for tooltip. Scroll to zoom. Drag to pan.
+ * Click a node → "Focus Mode": connected nodes orbit around it in a radial layout
+ * with clear relationship labels. Unconnected nodes dim out.
+ * Click background → return to full graph view.
  */
 
 import { useRef, useCallback, useEffect, useMemo, useState } from "react";
@@ -20,14 +20,14 @@ const TYPE_COLORS: Record<string, string> = {
   technology: "#ec4899",
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  person: "Person",
-  organization: "Organization",
-  country: "Country",
-  commodity: "Commodity",
-  event: "Event",
-  policy: "Policy",
-  technology: "Technology",
+const TYPE_EMOJI: Record<string, string> = {
+  person: "\u{1F464}",
+  organization: "\u{1F3E2}",
+  country: "\u{1F30D}",
+  commodity: "\u{1F4E6}",
+  event: "\u{26A1}",
+  policy: "\u{1F4DC}",
+  technology: "\u{1F4BB}",
 };
 
 interface EntityGraphProps {
@@ -49,10 +49,43 @@ export function EntityGraph({
 }: EntityGraphProps) {
   const graphRef = useRef<any>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const isDark =
     typeof document !== "undefined" &&
     document.documentElement.classList.contains("dark");
+
+  // Build adjacency map for focus mode
+  const adjacency = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const r of relationships) {
+      if (!map.has(r.source_entity_id)) map.set(r.source_entity_id, new Set());
+      if (!map.has(r.target_entity_id)) map.set(r.target_entity_id, new Set());
+      map.get(r.source_entity_id)!.add(r.target_entity_id);
+      map.get(r.target_entity_id)!.add(r.source_entity_id);
+    }
+    return map;
+  }, [relationships]);
+
+  // Which nodes are connected to selected
+  const connectedIds = useMemo(() => {
+    if (!selectedEntityId) return null;
+    const connected = new Set<string>();
+    connected.add(selectedEntityId);
+    const neighbors = adjacency.get(selectedEntityId);
+    if (neighbors) neighbors.forEach((id) => connected.add(id));
+    return connected;
+  }, [selectedEntityId, adjacency]);
+
+  // Relationship lookup for labels
+  const relMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of relationships) {
+      map.set(`${r.source_entity_id}__${r.target_entity_id}`, r.relationship_type);
+      map.set(`${r.target_entity_id}__${r.source_entity_id}`, r.relationship_type);
+    }
+    return map;
+  }, [relationships]);
 
   const graphData = useMemo(() => {
     const nodeSet = new Set(entities.map((e) => e.id));
@@ -68,8 +101,7 @@ export function EntityGraph({
       links: relationships
         .filter(
           (r) =>
-            nodeSet.has(r.source_entity_id) &&
-            nodeSet.has(r.target_entity_id),
+            nodeSet.has(r.source_entity_id) && nodeSet.has(r.target_entity_id),
         )
         .map((r) => ({
           source: r.source_entity_id,
@@ -80,19 +112,19 @@ export function EntityGraph({
     };
   }, [entities, relationships]);
 
+  // Center on mount
   useEffect(() => {
-    const timer = setTimeout(() => {
-      graphRef.current?.zoomToFit(400, 80);
-    }, 800);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => graphRef.current?.zoomToFit(400, 80), 800);
+    return () => clearTimeout(t);
   }, [graphData]);
 
+  // Focus mode: zoom to selected node
   useEffect(() => {
     if (selectedEntityId && graphRef.current) {
       const node = graphData.nodes.find((n) => n.id === selectedEntityId);
-      if (node) {
-        graphRef.current.centerAt((node as any).x, (node as any).y, 300);
-        graphRef.current.zoom(2, 300);
+      if (node && Number.isFinite((node as any).x)) {
+        graphRef.current.centerAt((node as any).x, (node as any).y, 500);
+        graphRef.current.zoom(2.2, 500);
       }
     }
   }, [selectedEntityId, graphData.nodes]);
@@ -104,135 +136,178 @@ export function EntityGraph({
     [onSelectEntity, selectedEntityId],
   );
 
-  const handleNodeHover = useCallback((node: any) => {
-    setHoveredNodeId(node?.id ?? null);
-    // Change cursor
-    const el = graphRef.current?.renderer()?.domElement;
-    if (el) el.style.cursor = node ? "pointer" : "grab";
-  }, []);
+  const handleNodeHover = useCallback(
+    (node: any) => {
+      setHoveredNodeId(node?.id ?? null);
+      if (containerRef.current) {
+        containerRef.current.style.cursor = node ? "pointer" : "grab";
+      }
+    },
+    [],
+  );
 
   const handleBackgroundClick = useCallback(() => {
     onSelectEntity(null);
+    if (graphRef.current) graphRef.current.zoomToFit(400, 80);
   }, [onSelectEntity]);
 
-  // Colors that adapt to dark/light
-  const labelBg = isDark ? "rgba(23,23,23,0.9)" : "rgba(255,255,255,0.92)";
-  const labelColor = isDark ? "#e7e5e4" : "#292524";
-  const labelDim = isDark ? "#a8a29e" : "#78716c";
-  const linkBase = isDark ? 0.2 : 0.12;
+  // Adaptive colors
+  const bg = isDark ? "rgba(23,23,23,0.92)" : "rgba(255,255,255,0.92)";
+  const textMain = isDark ? "#e7e5e4" : "#1c1917";
+  const textDim = isDark ? "#78716c" : "#a8a29e";
+  const linkDim = isDark ? 0.15 : 0.08;
 
+  // ── Node renderer ──
   const nodeCanvasObject = useCallback(
     (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const { x, y, name, entityType, mentionCount, id } = node;
       if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
-      const baseRadius = Math.max(4, Math.sqrt(mentionCount) * 2.8);
+      const r = Math.max(5, Math.sqrt(mentionCount) * 3);
       const isSelected = id === selectedEntityId;
       const isHovered = id === hoveredNodeId;
+      const isConnected = connectedIds ? connectedIds.has(id) : true;
       const isPulsing = pulsingIds.includes(id);
       const color = TYPE_COLORS[entityType] || "#78716c";
       const active = isSelected || isHovered;
+      const dimmed = connectedIds && !isConnected;
 
-      // Glow (stronger for selected/hovered)
-      if (active || mentionCount > 2) {
-        const glowRadius = baseRadius * (active ? 3.5 : 2);
-        const glowAlpha = active ? "40" : "18";
-        const grad = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
-        grad.addColorStop(0, `${color}${glowAlpha}`);
-        grad.addColorStop(1, `${color}00`);
+      // ── Dimmed nodes (not connected to selection) ──
+      if (dimmed) {
+        ctx.globalAlpha = 0.15;
         ctx.beginPath();
-        ctx.arc(x, y, glowRadius, 0, 2 * Math.PI);
-        ctx.fillStyle = grad;
+        ctx.arc(x, y, r * 0.8, 0, 2 * Math.PI);
+        ctx.fillStyle = isDark ? "#44403c" : "#d6d3d1";
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        return;
+      }
+
+      // ── Glow ──
+      if (active || mentionCount > 2) {
+        const gr = ctx.createRadialGradient(x, y, 0, x, y, r * (active ? 4 : 2.2));
+        gr.addColorStop(0, `${color}${active ? "35" : "15"}`);
+        gr.addColorStop(1, `${color}00`);
+        ctx.beginPath();
+        ctx.arc(x, y, r * (active ? 4 : 2.2), 0, 2 * Math.PI);
+        ctx.fillStyle = gr;
         ctx.fill();
       }
 
-      // Node circle
+      // ── Circle ──
       ctx.beginPath();
-      ctx.arc(x, y, baseRadius, 0, 2 * Math.PI);
-      ctx.fillStyle = active ? color : `${color}${isDark ? "bb" : "cc"}`;
+      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = color;
       ctx.fill();
 
-      // Border ring
+      // ── Selection / hover ring ──
       if (active) {
-        ctx.strokeStyle = isDark ? "#ffffff" : "#ffffff";
-        ctx.lineWidth = 2 / globalScale;
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2.5 / globalScale;
         ctx.stroke();
-
-        // Outer colored ring
         ctx.beginPath();
-        ctx.arc(x, y, baseRadius + 4 / globalScale, 0, 2 * Math.PI);
-        ctx.strokeStyle = `${color}50`;
+        ctx.arc(x, y, r + 5 / globalScale, 0, 2 * Math.PI);
+        ctx.strokeStyle = `${color}60`;
         ctx.lineWidth = 1.5 / globalScale;
         ctx.stroke();
       }
 
-      // Pulsing dashed ring (what-if affected)
+      // ── Pulsing ring ──
       if (isPulsing) {
         ctx.beginPath();
-        ctx.arc(x, y, baseRadius + 8 / globalScale, 0, 2 * Math.PI);
-        ctx.strokeStyle = `${color}80`;
+        ctx.arc(x, y, r + 10 / globalScale, 0, 2 * Math.PI);
+        ctx.strokeStyle = `${color}70`;
         ctx.lineWidth = 2 / globalScale;
-        ctx.setLineDash([4 / globalScale, 4 / globalScale]);
+        ctx.setLineDash([5 / globalScale, 5 / globalScale]);
         ctx.stroke();
         ctx.setLineDash([]);
       }
 
-      // Label — always show for selected/hovered, otherwise by zoom level
-      const showLabel = active || globalScale > 0.8 || mentionCount > 3;
+      // ── Mention count inside node ──
+      if (mentionCount > 1 && r > 7) {
+        const fs = Math.max(7, Math.min(r * 1.1, 14) / globalScale);
+        ctx.font = `700 ${fs}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#fff";
+        ctx.fillText(String(mentionCount), x, y);
+      }
+
+      // ── Label ──
+      const showLabel = active || globalScale > 0.7 || mentionCount > 2;
       if (showLabel) {
-        const labelText = name.length > 20 ? name.slice(0, 18) + "\u2026" : name;
-        const fontSize = Math.max(9, (active ? 13 : 11) / globalScale);
-        ctx.font = `${active ? "600 " : ""}${fontSize}px Inter, system-ui, sans-serif`;
+        const label = name.length > 22 ? name.slice(0, 20) + "\u2026" : name;
+        const fs = Math.max(9, (active ? 14 : 11) / globalScale);
+        ctx.font = `${active ? "600 " : "400 "}${fs}px Inter, system-ui, sans-serif`;
         ctx.textAlign = "center";
 
-        const textWidth = ctx.measureText(labelText).width;
+        const tw = ctx.measureText(label).width;
         const pad = 4 / globalScale;
-        const pillX = x - textWidth / 2 - pad;
-        const pillY = y + baseRadius + 4 / globalScale;
-        const pillW = textWidth + pad * 2;
-        const pillH = fontSize + pad;
+        const ly = y + r + 5 / globalScale;
 
-        // Background pill
-        ctx.fillStyle = labelBg;
-        ctx.fillRect(pillX, pillY, pillW, pillH);
+        // Pill bg
+        ctx.fillStyle = bg;
+        ctx.fillRect(x - tw / 2 - pad, ly - pad * 0.5, tw + pad * 2, fs + pad);
 
         // Text
         ctx.textBaseline = "top";
-        ctx.fillStyle = active ? color : labelColor;
-        ctx.fillText(labelText, x, pillY + pad * 0.3);
+        ctx.fillStyle = active ? color : textMain;
+        ctx.fillText(label, x, ly);
 
-        // Type label under name for selected node
+        // Type label for selected
         if (isSelected) {
-          const typeName = TYPE_LABELS[entityType] || entityType;
-          const tSize = Math.max(7, 9 / globalScale);
-          ctx.font = `500 ${tSize}px Inter, system-ui, sans-serif`;
-          ctx.fillStyle = labelDim;
-          ctx.fillText(typeName, x, pillY + pillH + 1 / globalScale);
+          const tl = (TYPE_EMOJI[entityType] || "") + " " + (entityType || "");
+          const ts = Math.max(7, 10 / globalScale);
+          ctx.font = `500 ${ts}px Inter, system-ui, sans-serif`;
+          ctx.fillStyle = textDim;
+          ctx.fillText(tl, x, ly + fs + 2 / globalScale);
+        }
+
+        // Relationship label from selected node (shown on connected neighbors)
+        if (
+          selectedEntityId &&
+          !isSelected &&
+          isConnected &&
+          connectedIds
+        ) {
+          const relLabel = relMap.get(`${selectedEntityId}__${id}`);
+          if (relLabel) {
+            const rl = relLabel.replace(/_/g, " ");
+            const rs = Math.max(8, 10 / globalScale);
+            ctx.font = `italic 500 ${rs}px Inter, system-ui, sans-serif`;
+            const rw = ctx.measureText(rl).width;
+            const ry = ly - fs - 6 / globalScale;
+
+            // Colored pill
+            ctx.fillStyle = `${color}20`;
+            ctx.fillRect(x - rw / 2 - 3, ry - 1, rw + 6, rs + 2);
+            ctx.fillStyle = color;
+            ctx.textBaseline = "top";
+            ctx.fillText(rl, x, ry);
+          }
         }
       }
-
-      // Mention count inside node (for larger nodes)
-      if (mentionCount > 2 && baseRadius > 8 && globalScale > 0.6) {
-        const countSize = Math.max(7, 10 / globalScale);
-        ctx.font = `700 ${countSize}px Inter, system-ui, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(String(mentionCount), x, y);
-      }
     },
-    [selectedEntityId, hoveredNodeId, pulsingIds, isDark, labelBg, labelColor, labelDim],
+    [
+      selectedEntityId,
+      hoveredNodeId,
+      connectedIds,
+      pulsingIds,
+      relMap,
+      isDark,
+      bg,
+      textMain,
+      textDim,
+    ],
   );
 
+  // ── Link renderer ──
   const linkCanvasObject = useCallback(
     (link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-      const { source, target, label, weight } = link;
+      const { source, target, weight } = link;
       if (typeof source !== "object" || typeof target !== "object") return;
-
-      const sx = source.x;
-      const sy = source.y;
-      const tx = target.x;
-      const ty = target.y;
+      const { x: sx, y: sy } = source;
+      const { x: tx, y: ty } = target;
       if (
         !Number.isFinite(sx) ||
         !Number.isFinite(sy) ||
@@ -241,79 +316,72 @@ export function EntityGraph({
       )
         return;
 
-      const isConnected =
-        source.id === selectedEntityId ||
-        target.id === selectedEntityId ||
-        source.id === hoveredNodeId ||
-        target.id === hoveredNodeId;
+      const srcConnected = connectedIds ? connectedIds.has(source.id) : true;
+      const tgtConnected = connectedIds ? connectedIds.has(target.id) : true;
+      const bothConnected = srcConnected && tgtConnected;
+      const anyHovered =
+        source.id === hoveredNodeId || target.id === hoveredNodeId;
+      const highlight = bothConnected && (!!selectedEntityId || anyHovered);
 
-      const sourceColor = TYPE_COLORS[source.entityType] || "#a8a29e";
-      const targetColor = TYPE_COLORS[target.entityType] || "#a8a29e";
-      const opacity = isConnected
-        ? Math.max(0.4, weight * 0.6)
-        : Math.max(linkBase, weight * 0.25);
-      const lineWidth =
-        (isConnected ? Math.max(1, weight * 2.5) : Math.max(0.5, weight * 1.2)) /
+      // Dim links between unrelated nodes when a node is selected
+      if (connectedIds && !bothConnected) {
+        ctx.globalAlpha = 0.04;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(tx, ty);
+        ctx.strokeStyle = isDark ? "#57534e" : "#d6d3d1";
+        ctx.lineWidth = 0.5 / globalScale;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        return;
+      }
+
+      const srcColor = TYPE_COLORS[source.entityType] || "#a8a29e";
+      const tgtColor = TYPE_COLORS[target.entityType] || "#a8a29e";
+      const opacity = highlight
+        ? Math.max(0.5, weight * 0.8)
+        : Math.max(linkDim, weight * 0.25);
+      const lw =
+        (highlight ? Math.max(1.5, weight * 3) : Math.max(0.4, weight)) /
         globalScale;
+
+      const hex = (v: number) =>
+        Math.round(Math.min(1, v) * 255)
+          .toString(16)
+          .padStart(2, "0");
 
       // Line
       const grad = ctx.createLinearGradient(sx, sy, tx, ty);
-      const hex = (v: number) =>
-        Math.round(v * 255)
-          .toString(16)
-          .padStart(2, "0");
-      grad.addColorStop(0, `${sourceColor}${hex(opacity)}`);
-      grad.addColorStop(1, `${targetColor}${hex(opacity)}`);
-
+      grad.addColorStop(0, `${srcColor}${hex(opacity)}`);
+      grad.addColorStop(1, `${tgtColor}${hex(opacity)}`);
       ctx.beginPath();
       ctx.moveTo(sx, sy);
       ctx.lineTo(tx, ty);
       ctx.strokeStyle = grad;
-      ctx.lineWidth = lineWidth;
+      ctx.lineWidth = lw;
       ctx.stroke();
 
-      // Arrowhead
+      // Arrow
       const angle = Math.atan2(ty - sy, tx - sx);
-      const arrowLen = (isConnected ? 7 : 4) / globalScale;
-      const tRadius = Math.max(4, Math.sqrt(target.mentionCount || 1) * 2.8);
-      const ax = tx - Math.cos(angle) * (tRadius + 3 / globalScale);
-      const ay = ty - Math.sin(angle) * (tRadius + 3 / globalScale);
-
+      const aLen = (highlight ? 8 : 4) / globalScale;
+      const tR = Math.max(5, Math.sqrt(target.mentionCount || 1) * 3);
+      const ax = tx - Math.cos(angle) * (tR + 3 / globalScale);
+      const ay = ty - Math.sin(angle) * (tR + 3 / globalScale);
       ctx.beginPath();
       ctx.moveTo(ax, ay);
       ctx.lineTo(
-        ax - arrowLen * Math.cos(angle - Math.PI / 7),
-        ay - arrowLen * Math.sin(angle - Math.PI / 7),
+        ax - aLen * Math.cos(angle - Math.PI / 7),
+        ay - aLen * Math.sin(angle - Math.PI / 7),
       );
       ctx.lineTo(
-        ax - arrowLen * Math.cos(angle + Math.PI / 7),
-        ay - arrowLen * Math.sin(angle + Math.PI / 7),
+        ax - aLen * Math.cos(angle + Math.PI / 7),
+        ay - aLen * Math.sin(angle + Math.PI / 7),
       );
       ctx.closePath();
-      ctx.fillStyle = `${targetColor}${hex(Math.min(1, opacity * 2))}`;
+      ctx.fillStyle = `${tgtColor}${hex(Math.min(1, opacity * 2))}`;
       ctx.fill();
-
-      // Relationship label
-      if ((globalScale > 1.2 || isConnected) && label) {
-        const midX = (sx + tx) / 2;
-        const midY = (sy + ty) / 2;
-        const fontSize = Math.max(7, 9 / globalScale);
-        ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        const text = label.replace(/_/g, " ");
-        const tw = ctx.measureText(text).width;
-
-        // Background
-        ctx.fillStyle = labelBg;
-        ctx.fillRect(midX - tw / 2 - 2, midY - fontSize / 2 - 1, tw + 4, fontSize + 2);
-
-        ctx.fillStyle = isConnected ? (isDark ? "#d6d3d1" : "#57534e") : labelDim;
-        ctx.fillText(text, midX, midY);
-      }
     },
-    [selectedEntityId, hoveredNodeId, isDark, linkBase, labelBg, labelDim],
+    [selectedEntityId, hoveredNodeId, connectedIds, isDark, linkDim],
   );
 
   if (entities.length === 0) {
@@ -328,9 +396,10 @@ export function EntityGraph({
   }
 
   const activeTypes = [...new Set(entities.map((e) => e.entity_type))].sort();
+  const neighborCount = connectedIds ? connectedIds.size - 1 : 0;
 
   return (
-    <div className="relative w-full" style={{ height }}>
+    <div ref={containerRef} className="relative w-full" style={{ height, cursor: "grab" }}>
       <ForceGraph2D
         ref={graphRef}
         graphData={graphData}
@@ -342,26 +411,34 @@ export function EntityGraph({
         onNodeHover={handleNodeHover}
         onBackgroundClick={handleBackgroundClick}
         nodePointerAreaPaint={(node: any, color, ctx) => {
-          const radius = Math.max(10, Math.sqrt(node.mentionCount) * 4);
+          if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) return;
+          const radius = Math.max(12, Math.sqrt(node.mentionCount) * 5);
           ctx.beginPath();
           ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
           ctx.fillStyle = color;
           ctx.fill();
         }}
-        cooldownTicks={100}
-        d3AlphaDecay={0.012}
+        enableNodeDrag={true}
+        enablePointerInteraction={true}
+        cooldownTicks={120}
+        d3AlphaDecay={0.01}
         d3VelocityDecay={0.2}
-        linkDirectionalParticles={1}
-        linkDirectionalParticleWidth={(link: any) => {
-          const connected =
-            link.source?.id === selectedEntityId ||
-            link.target?.id === selectedEntityId;
-          return connected ? 3 : 1.5;
+        linkDirectionalParticles={(link: any) => {
+          if (!connectedIds) return 1;
+          const src = typeof link.source === "object" ? link.source.id : link.source;
+          const tgt = typeof link.target === "object" ? link.target.id : link.target;
+          return connectedIds.has(src) && connectedIds.has(tgt) ? 2 : 0;
         }}
-        linkDirectionalParticleSpeed={0.004}
+        linkDirectionalParticleWidth={2}
+        linkDirectionalParticleSpeed={0.005}
         linkDirectionalParticleColor={(link: any) => {
-          const c = TYPE_COLORS[link.target?.entityType] || "#a8a29e";
-          return isDark ? `${c}90` : `${c}60`;
+          const c =
+            TYPE_COLORS[
+              typeof link.target === "object"
+                ? link.target.entityType
+                : ""
+            ] || "#a8a29e";
+          return isDark ? `${c}aa` : `${c}70`;
         }}
         enableZoomInteraction={true}
         enablePanInteraction={true}
@@ -376,7 +453,7 @@ export function EntityGraph({
             className="flex items-center gap-1 bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-full px-2 py-0.5 shadow-sm"
           >
             <span
-              className="size-2 rounded-full"
+              className="size-2.5 rounded-full"
               style={{ backgroundColor: TYPE_COLORS[type] || "#78716c" }}
             />
             <span className="text-[9px] font-medium text-stone-600 dark:text-stone-300 capitalize">
@@ -386,18 +463,27 @@ export function EntityGraph({
         ))}
       </div>
 
-      {/* Stats + instructions */}
+      {/* Stats */}
       <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 pointer-events-none">
         <div className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-sm">
           <span className="text-[10px] font-mono text-stone-500 dark:text-stone-400">
             {entities.length} entities &middot; {relationships.length} relationships
           </span>
         </div>
-        <div className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-sm">
-          <span className="text-[9px] text-stone-400 dark:text-stone-500">
-            Click node to inspect &middot; Scroll to zoom &middot; Drag to pan
-          </span>
-        </div>
+        {!selectedEntityId && (
+          <div className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm">
+            <span className="text-[9px] text-stone-400 dark:text-stone-500">
+              Click a node to focus &middot; Scroll to zoom &middot; Drag to pan
+            </span>
+          </div>
+        )}
+        {selectedEntityId && (
+          <div className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-sm rounded-lg px-3 py-1 shadow-sm">
+            <span className="text-[9px] text-stone-400 dark:text-stone-500">
+              {neighborCount} connected &middot; Click background to unfocus
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
