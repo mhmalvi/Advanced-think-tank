@@ -83,34 +83,46 @@ async def run_simulation(
         engagement_depths = []
         share_chain_depth = 0
 
-        # Each step simulates a wave of agent interactions
+        # Each step simulates a wave of agent interactions.
+        # Use Claude for 1 representative agent per archetype per story (6 calls),
+        # then apply probabilistic modeling for the remaining agents to keep
+        # the simulation fast (~30s) while still data-rich.
+        llm_reactions: dict[str, dict] = {}  # archetype -> LLM reaction template
+
         for step in range(simulation_steps):
-            # Sample a subset of agents per step (simulate feed exposure)
             step_agents = random.sample(
                 agents, min(len(agents), max(5, agent_count // simulation_steps))
             )
 
             for agent in step_agents:
-                prompt = AGENT_PROMPT.format(
-                    archetype=agent["archetype"],
-                    description=agent["description"],
-                    title=title,
-                    content=content,
-                )
+                archetype = agent["archetype"]
 
-                try:
-                    response = client.messages.create(
-                        model=settings.llm_model,
-                        max_tokens=256,
-                        messages=[{"role": "user", "content": prompt}],
+                # Only call Claude once per archetype per story (on step 0)
+                if step == 0 and archetype not in llm_reactions:
+                    prompt = AGENT_PROMPT.format(
+                        archetype=archetype,
+                        description=agent["description"],
+                        title=title,
+                        content=content,
                     )
-                    raw = response.content[0].text.strip()
-                    # Parse JSON from response (handle markdown fences)
-                    if raw.startswith("```"):
-                        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-                    reaction = json.loads(raw)
-                except (json.JSONDecodeError, IndexError, anthropic.APIError):
-                    # Fallback: generate a probabilistic reaction
+                    try:
+                        response = client.messages.create(
+                            model=settings.llm_model,
+                            max_tokens=256,
+                            messages=[{"role": "user", "content": prompt}],
+                        )
+                        raw = response.content[0].text.strip()
+                        if raw.startswith("```"):
+                            raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+                        llm_reactions[archetype] = json.loads(raw)
+                    except (json.JSONDecodeError, IndexError, anthropic.APIError):
+                        llm_reactions[archetype] = _fallback_reaction(agent, title)
+
+                # Use LLM template for this archetype, add per-agent variance
+                if archetype in llm_reactions:
+                    template = llm_reactions[archetype]
+                    reaction = _vary_reaction(template, agent, title, step)
+                else:
                     reaction = _fallback_reaction(agent, title)
 
                 action = reaction.get("action", "ignore")
@@ -210,6 +222,55 @@ async def run_simulation(
         "echo_chamber_score": round(echo_chamber_score, 4),
         "duration_seconds": round(duration, 2),
         "metrics": [m.model_dump() for m in story_metrics],
+    }
+
+
+def _vary_reaction(template: dict, agent: dict, title: str, step: int) -> dict:
+    """Add per-agent variance to an LLM-generated reaction template.
+
+    Keeps the archetype's overall sentiment direction but varies
+    the specific action and engagement depth per agent.
+    """
+    seed = int(hashlib.md5(
+        f"{agent['id']}{title}{step}".encode()
+    ).hexdigest()[:8], 16)
+    rng = random.Random(seed)
+
+    base_sentiment = float(template.get("sentiment", 0.0))
+    sentiment = max(-1.0, min(1.0,
+        base_sentiment + rng.uniform(-0.3, 0.3) * agent["sentiment_weight"]
+    ))
+
+    base_depth = float(template.get("engagement_depth", 0.5))
+    depth = max(0.0, min(1.0,
+        base_depth + rng.uniform(-0.2, 0.2)
+    ))
+
+    # Vary action based on engagement bias
+    roll = rng.random()
+    base_action = template.get("action", "ignore")
+    if roll > agent["engagement_bias"]:
+        action = "ignore"
+    elif base_action in ("like", "share", "comment"):
+        # Mostly follow the template, occasionally vary
+        if rng.random() < 0.7:
+            action = base_action
+        else:
+            action = rng.choice(["like", "comment", "share"])
+    else:
+        action = base_action
+
+    would_share = template.get("would_share", False)
+    if rng.random() < agent["share_threshold"]:
+        would_share = True
+
+    return {
+        "action": action,
+        "sentiment": round(sentiment, 2),
+        "engagement_depth": round(depth, 2),
+        "would_share": would_share,
+        "comment_text": None,
+        "reasoning": "varied from archetype template",
     }
 
 

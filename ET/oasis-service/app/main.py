@@ -7,9 +7,12 @@ generating predictions, and creating analysis reports.
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Optional
 
 import httpx
+
+logger = logging.getLogger("oasis")
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 
 from app.config import settings
@@ -315,7 +318,9 @@ async def _run_and_store(
 ):
     """Background task: run simulation and store results in Supabase."""
     try:
+        logger.info(f"Starting simulation: {len(stories)} stories, {agent_count} agents, {simulation_steps} steps")
         result = await run_simulation(stories, agent_count, simulation_steps)
+        logger.info(f"Simulation completed: run_id={result['run_id']}, actions={result['total_actions']}")
         run_id = result["run_id"]
 
         # Update in-memory cache
@@ -417,6 +422,7 @@ async def _run_and_store(
                     )
 
     except Exception as e:
+        logger.error(f"Simulation failed: {e}", exc_info=True)
         # Mark run as failed
         for temp_id, run_data in list(_runs.items()):
             if run_data["status"] == "pending":
