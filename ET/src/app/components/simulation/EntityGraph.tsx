@@ -132,8 +132,8 @@ export function EntityGraph({
       return;
     }
 
-    // Calculate orbit radius based on neighbor count (more neighbors = wider orbit)
-    const orbitRadius = Math.max(120, neighbors.size * 28);
+    // Wide orbit so labels between nodes are readable
+    const orbitRadius = Math.max(200, neighbors.size * 40);
     const neighborArr = [...neighbors];
 
     // Position each neighbor evenly around the center node
@@ -321,30 +321,6 @@ export function EntityGraph({
           ctx.fillStyle = textDim;
           ctx.fillText(tl, x, ly + fs + 2 / globalScale);
         }
-
-        // Relationship label from selected node (shown on connected neighbors)
-        if (
-          selectedEntityId &&
-          !isSelected &&
-          isConnected &&
-          connectedIds
-        ) {
-          const relLabel = relMap.get(`${selectedEntityId}__${id}`);
-          if (relLabel) {
-            const rl = relLabel.replace(/_/g, " ");
-            const rs = Math.max(8, 10 / globalScale);
-            ctx.font = `italic 500 ${rs}px Inter, system-ui, sans-serif`;
-            const rw = ctx.measureText(rl).width;
-            const ry = ly - fs - 6 / globalScale;
-
-            // Colored pill
-            ctx.fillStyle = `${color}20`;
-            ctx.fillRect(x - rw / 2 - 3, ry - 1, rw + 6, rs + 2);
-            ctx.fillStyle = color;
-            ctx.textBaseline = "top";
-            ctx.fillText(rl, x, ry);
-          }
-        }
       }
     },
     [
@@ -363,7 +339,7 @@ export function EntityGraph({
   // ── Link renderer ──
   const linkCanvasObject = useCallback(
     (link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-      const { source, target, weight } = link;
+      const { source, target, label, weight } = link;
       if (typeof source !== "object" || typeof target !== "object") return;
       const { x: sx, y: sy } = source;
       const { x: tx, y: ty } = target;
@@ -380,34 +356,39 @@ export function EntityGraph({
       const bothConnected = srcConnected && tgtConnected;
       const anyHovered =
         source.id === hoveredNodeId || target.id === hoveredNodeId;
+      const isFocusLink =
+        bothConnected &&
+        (source.id === selectedEntityId || target.id === selectedEntityId);
       const highlight = bothConnected && (!!selectedEntityId || anyHovered);
 
-      // Dim links between unrelated nodes when a node is selected
+      // Dim unrelated links
       if (connectedIds && !bothConnected) {
-        ctx.globalAlpha = 0.04;
+        ctx.globalAlpha = 0.03;
         ctx.beginPath();
         ctx.moveTo(sx, sy);
         ctx.lineTo(tx, ty);
         ctx.strokeStyle = isDark ? "#57534e" : "#d6d3d1";
-        ctx.lineWidth = 0.5 / globalScale;
+        ctx.lineWidth = 0.3 / globalScale;
         ctx.stroke();
         ctx.globalAlpha = 1;
         return;
       }
 
-      const srcColor = TYPE_COLORS[source.entityType] || "#a8a29e";
-      const tgtColor = TYPE_COLORS[target.entityType] || "#a8a29e";
-      const opacity = highlight
-        ? Math.max(0.5, weight * 0.8)
-        : Math.max(linkDim, weight * 0.25);
-      const lw =
-        (highlight ? Math.max(1.5, weight * 3) : Math.max(0.4, weight)) /
-        globalScale;
-
       const hex = (v: number) =>
         Math.round(Math.min(1, v) * 255)
           .toString(16)
           .padStart(2, "0");
+
+      const srcColor = TYPE_COLORS[source.entityType] || "#a8a29e";
+      const tgtColor = TYPE_COLORS[target.entityType] || "#a8a29e";
+      const opacity = isFocusLink
+        ? 0.7
+        : highlight
+          ? Math.max(0.4, weight * 0.6)
+          : Math.max(linkDim, weight * 0.2);
+      const lw =
+        (isFocusLink ? 2.5 : highlight ? 1.5 : Math.max(0.4, weight)) /
+        globalScale;
 
       // Line
       const grad = ctx.createLinearGradient(sx, sy, tx, ty);
@@ -422,10 +403,10 @@ export function EntityGraph({
 
       // Arrow
       const angle = Math.atan2(ty - sy, tx - sx);
-      const aLen = (highlight ? 8 : 4) / globalScale;
+      const aLen = (isFocusLink ? 10 : highlight ? 6 : 4) / globalScale;
       const tR = Math.max(5, Math.sqrt(target.mentionCount || 1) * 3);
-      const ax = tx - Math.cos(angle) * (tR + 3 / globalScale);
-      const ay = ty - Math.sin(angle) * (tR + 3 / globalScale);
+      const ax = tx - Math.cos(angle) * (tR + 4 / globalScale);
+      const ay = ty - Math.sin(angle) * (tR + 4 / globalScale);
       ctx.beginPath();
       ctx.moveTo(ax, ay);
       ctx.lineTo(
@@ -439,6 +420,49 @@ export function EntityGraph({
       ctx.closePath();
       ctx.fillStyle = `${tgtColor}${hex(Math.min(1, opacity * 2))}`;
       ctx.fill();
+
+      // ── Relationship label ON the line (focus mode or zoomed in) ──
+      if ((isFocusLink || (highlight && globalScale > 1) || globalScale > 1.8) && label) {
+        const midX = (sx + tx) / 2;
+        const midY = (sy + ty) / 2;
+        const text = label.replace(/_/g, " ");
+        const fs = isFocusLink
+          ? Math.max(10, 13 / globalScale)
+          : Math.max(7, 9 / globalScale);
+        ctx.font = `${isFocusLink ? "600 " : ""}${fs}px Inter, system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const tw = ctx.measureText(text).width;
+        const pad = 4 / globalScale;
+
+        // Rotated background pill aligned to the line
+        ctx.save();
+        ctx.translate(midX, midY);
+        let rot = Math.atan2(ty - sy, tx - sx);
+        // Keep text upright
+        if (rot > Math.PI / 2) rot -= Math.PI;
+        if (rot < -Math.PI / 2) rot += Math.PI;
+        ctx.rotate(rot);
+
+        // Background
+        ctx.fillStyle = isDark ? "rgba(23,23,23,0.95)" : "rgba(255,255,255,0.95)";
+        ctx.fillRect(-tw / 2 - pad, -fs / 2 - pad * 0.5, tw + pad * 2, fs + pad);
+
+        // Border
+        if (isFocusLink) {
+          ctx.strokeStyle = `${tgtColor}30`;
+          ctx.lineWidth = 1 / globalScale;
+          ctx.strokeRect(-tw / 2 - pad, -fs / 2 - pad * 0.5, tw + pad * 2, fs + pad);
+        }
+
+        // Text
+        ctx.fillStyle = isFocusLink
+          ? (isDark ? "#e7e5e4" : "#292524")
+          : (isDark ? "#a8a29e" : "#78716c");
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      }
     },
     [selectedEntityId, hoveredNodeId, connectedIds, isDark, linkDim],
   );

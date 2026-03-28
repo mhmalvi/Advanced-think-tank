@@ -1,9 +1,10 @@
 /**
- * ContextPanel — slide-up panel that appears when a node is clicked in the graph.
- * Shows entity info, engagement metrics, propagation breakdown, and what-if input.
+ * ContextPanel — resizable slide-up panel showing entity details.
+ * Drag the top handle to resize. Shows engagement, propagation, polarization, what-if.
  */
 
-import { X, AlertTriangle } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { X, AlertTriangle, GripHorizontal } from "lucide-react";
 import { EngagementCard } from "./EngagementCard";
 import { PropagationCard } from "./PropagationCard";
 import { WhatIfCard } from "./WhatIfCard";
@@ -13,11 +14,8 @@ import type { Entity, StoryMetric } from "@/types/simulation";
 
 interface ContextPanelProps {
   entity: Entity | null;
-  /** Metrics for stories related to this entity. */
   relatedMetrics: StoryMetric[];
-  /** Overall polarization index. */
   polarizationIndex: number;
-  /** Close the panel. */
   onClose: () => void;
 }
 
@@ -27,9 +25,35 @@ export function ContextPanel({
   polarizationIndex,
   onClose,
 }: ContextPanelProps) {
+  const [panelHeight, setPanelHeight] = useState(320);
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null);
+
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      dragRef.current = { startY: e.clientY, startH: panelHeight };
+
+      const onMove = (ev: MouseEvent) => {
+        if (!dragRef.current) return;
+        const delta = dragRef.current.startY - ev.clientY;
+        const newH = Math.max(180, Math.min(window.innerHeight * 0.75, dragRef.current.startH + delta));
+        setPanelHeight(newH);
+      };
+
+      const onUp = () => {
+        dragRef.current = null;
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    },
+    [panelHeight],
+  );
+
   if (!entity) return null;
 
-  // Aggregate metrics across related stories
   const aggregatedMetric: StoryMetric | null =
     relatedMetrics.length > 0
       ? {
@@ -56,16 +80,23 @@ export function ContextPanel({
         }
       : null;
 
-  const typeLabel = entity.entity_type.charAt(0).toUpperCase() + entity.entity_type.slice(1);
+  const typeLabel =
+    entity.entity_type.charAt(0).toUpperCase() + entity.entity_type.slice(1);
 
   return (
-    <div className="border-t border-stone-200 dark:border-stone-800 bg-white dark:bg-[#0a0a0b] overflow-y-auto max-h-[50vh] animate-in slide-in-from-bottom duration-200">
-      {/* Drag handle */}
-      <div className="flex justify-center py-1">
-        <div className="w-8 h-1 rounded-full bg-stone-300 dark:bg-stone-600" />
+    <div
+      className="border-t border-stone-200 dark:border-stone-800 bg-white dark:bg-[#111111] overflow-hidden animate-in slide-in-from-bottom duration-200 shrink-0"
+      style={{ height: panelHeight }}
+    >
+      {/* Resize handle */}
+      <div
+        className="flex justify-center py-1.5 cursor-ns-resize hover:bg-stone-100 dark:hover:bg-stone-800/50 transition-colors select-none"
+        onMouseDown={handleMouseDown}
+      >
+        <GripHorizontal className="size-4 text-stone-300 dark:text-stone-600" />
       </div>
 
-      <div className="px-6 pb-4">
+      <div className="overflow-y-auto px-6 pb-4" style={{ height: panelHeight - 32 }}>
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div>
@@ -109,18 +140,19 @@ export function ContextPanel({
                   <div className="p-2.5 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 flex items-start gap-2">
                     <AlertTriangle className="size-3.5 text-amber-500 shrink-0 mt-0.5" />
                     <p className="text-[10px] text-amber-700 dark:text-amber-300">
-                      Echo chamber risk detected. Agent groups are forming isolated opinion clusters around this entity.
+                      Echo chamber risk detected. Agent groups are forming
+                      isolated opinion clusters around this entity.
                     </p>
                   </div>
                 )}
                 <WhatIfCard entityIds={[entity.id]} />
               </div>
-              <div className="col-span-3">
+              <div className="col-span-1 md:col-span-3">
                 <Heatmap />
               </div>
             </>
           ) : (
-            <div className="col-span-3">
+            <div className="col-span-1 md:col-span-3">
               <WhatIfCard entityIds={[entity.id]} />
               <p className="text-[10px] text-stone-400 mt-2 text-center">
                 No simulation metrics for this entity's stories yet.
