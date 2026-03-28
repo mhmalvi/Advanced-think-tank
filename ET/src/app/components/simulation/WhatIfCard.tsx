@@ -1,6 +1,6 @@
 /**
  * WhatIfCard — text input for what-if scenario predictions.
- * Calls the OASIS /predict endpoint and streams the result in-place.
+ * Calls the Aether /predict endpoint and streams the result in-place.
  */
 
 import { useState } from "react";

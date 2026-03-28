@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """OASIS service configuration."""
+    """Aether service configuration."""
 
     # Anthropic
     anthropic_api_key: str = ""
@@ -23,11 +23,11 @@ class Settings(BaseSettings):
     max_steps: int = 3
     default_agent_count: int = 50
 
-    # Data directory for temporary OASIS SQLite files
+    # Data directory for temporary Aether SQLite files
     data_dir: str = "/app/data"
 
     class Config:
-        env_prefix = "OASIS_"
+        env_prefix = "AETHER_"
         # Also read unprefixed vars for Supabase/Pinecone
         env_file = ".env"
 

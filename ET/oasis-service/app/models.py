@@ -1,4 +1,4 @@
-"""Pydantic request/response schemas for the OASIS service."""
+"""Pydantic request/response schemas for the Aether service."""
 
 from __future__ import annotations
 

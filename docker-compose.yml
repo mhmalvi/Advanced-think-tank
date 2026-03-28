@@ -18,23 +18,23 @@ services:
       timeout: 5s
       retries: 3
 
-  oasis:
+  aether:
     build:
       context: ./ET/oasis-service
       dockerfile: Dockerfile
-    container_name: oasis
+    container_name: aether
     networks:
       - apps_web
     environment:
-      - OASIS_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - OASIS_LLM_MODEL=claude-haiku-4-5-20251001
-      - OASIS_SUPABASE_URL=${SUPABASE_URL}
-      - OASIS_SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - OASIS_PINECONE_API_KEY=${PINECONE_API_KEY}
-      - OASIS_MAX_AGENTS=50
-      - OASIS_MAX_STEPS=3
+      - AETHER_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AETHER_LLM_MODEL=claude-haiku-4-5-20251001
+      - AETHER_SUPABASE_URL=${SUPABASE_URL}
+      - AETHER_SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - AETHER_PINECONE_API_KEY=${PINECONE_API_KEY}
+      - AETHER_MAX_AGENTS=50
+      - AETHER_MAX_STEPS=3
     volumes:
-      - oasis_data:/app/data
+      - aether_data:/app/data
     restart: unless-stopped
     deploy:
       resources:
@@ -48,7 +48,7 @@ services:
       retries: 3
 
 volumes:
-  oasis_data:
+  aether_data:
 
 networks:
   apps_web:

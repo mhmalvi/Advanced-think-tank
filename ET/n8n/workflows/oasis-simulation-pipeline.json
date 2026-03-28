@@ -1,5 +1,5 @@
 {
-  "name": "Advanced Think Tank OASIS Simulation Pipeline",
+  "name": "Advanced Think Tank Aether Simulation Pipeline",
   "nodes": [
     {
       "parameters": {
@@ -90,7 +90,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://oasis:8100/simulate",
+        "url": "http://aether:8100/simulate",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
@@ -111,7 +111,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Poll for results: wait 15s then check\nconst runId = $input.first().json.run_id;\nlet attempts = 0;\nconst maxAttempts = 20;\nconst pollInterval = 15000;\n\nwhile (attempts < maxAttempts) {\n  await new Promise(resolve => setTimeout(resolve, pollInterval));\n  attempts++;\n  \n  try {\n    const response = await fetch(`http://oasis:8100/results/${runId}`);\n    const data = await response.json();\n    \n    if (data.status === 'completed') {\n      return [{ json: data }];\n    } else if (data.status === 'failed') {\n      return [{ json: { error: data.error_message || 'Simulation failed', run_id: runId } }];\n    }\n  } catch (e) {\n    // Continue polling\n  }\n}\n\nreturn [{ json: { error: 'Timeout waiting for simulation', run_id: runId } }];"
+        "jsCode": "// Poll for results: wait 15s then check\nconst runId = $input.first().json.run_id;\nlet attempts = 0;\nconst maxAttempts = 20;\nconst pollInterval = 15000;\n\nwhile (attempts < maxAttempts) {\n  await new Promise(resolve => setTimeout(resolve, pollInterval));\n  attempts++;\n  \n  try {\n    const response = await fetch(`http://aether:8100/results/${runId}`);\n    const data = await response.json();\n    \n    if (data.status === 'completed') {\n      return [{ json: data }];\n    } else if (data.status === 'failed') {\n      return [{ json: { error: data.error_message || 'Simulation failed', run_id: runId } }];\n    }\n  } catch (e) {\n    // Continue polling\n  }\n}\n\nreturn [{ json: { error: 'Timeout waiting for simulation', run_id: runId } }];"
       },
       "name": "Poll Results",
       "type": "n8n-nodes-base.code",

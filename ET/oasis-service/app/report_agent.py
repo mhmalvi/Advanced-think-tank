@@ -11,7 +11,7 @@ from app.config import settings
 
 REPORT_PROMPT = """You are a senior intelligence analyst writing a simulation briefing report.
 
-Based on the following OASIS social simulation results, write a concise intelligence report.
+Based on the following Aether simulation engine results, write a concise intelligence report.
 
 ## Simulation Run Summary
 - Agents: {agent_count}

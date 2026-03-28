@@ -1,4 +1,4 @@
-/** Types for the OASIS simulation intelligence layer. */
+/** Types for the Aether simulation intelligence layer. */
 
 export interface SimulationRun {
   run_id: string;

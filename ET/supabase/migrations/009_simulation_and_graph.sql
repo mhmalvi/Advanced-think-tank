@@ -1,8 +1,8 @@
 -- Migration 009: Simulation intelligence + knowledge graph tables
--- Adds OASIS simulation tracking, per-story metrics, entity graph, and story sim columns
+-- Adds Aether simulation tracking, per-story metrics, entity graph, and story sim columns
 
 -- ============================================================
--- Simulation runs — one row per OASIS execution
+-- Simulation runs — one row per Aether execution
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.simulation_runs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

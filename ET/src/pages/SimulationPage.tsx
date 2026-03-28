@@ -128,7 +128,7 @@ export function SimulationPage() {
                 </div>
               </div>
               <h2 className="text-lg font-bold text-stone-900 dark:text-white mb-2">
-                OASIS Simulation Intelligence
+                Aether Simulation Engine
               </h2>
               <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md text-center mb-6">
                 50 AI agents simulate how geopolitical stories spread, predicting engagement,

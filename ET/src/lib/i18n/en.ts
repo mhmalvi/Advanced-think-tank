@@ -30,8 +30,8 @@ export const en = {
     scrollLeft: "Scroll sources left",
     scrollRight: "Scroll sources right",
     switchLang: "Skift til dansk",
-    copyright: "Et Primaer",
-    logoAlt: "Et Primaer Logo",
+    copyright: "Aethon Automation Solutions",
+    logoAlt: "Advanced Think Tank Logo",
     openArticle: "Open article",
     home: "Home",
     dismiss: "Dismiss",
@@ -86,7 +86,7 @@ export const en = {
     dailyScan: "Daily Scan",
     savedQueries: "Saved Queries",
     sources: "Sources",
-    subtitle: "Erhvervslivets Tænketank",
+    subtitle: "By Aethon Automation Solutions",
     queryHistory: "Query History",
     noSavedQueries: "No saved queries yet",
     viewAllSaved: "View all",
@@ -399,7 +399,7 @@ export const en = {
   },
   landing: {
     heroTitle: "Advanced Think Tank",
-    heroSubtitle: "Erhvervslivets Tænketank",
+    heroSubtitle: "By Aethon Automation Solutions",
     heroTagline:
       "Monitor geopolitical shifts, trade patterns, and economic policies — synthesized from 17+ sources using AI.",
     heroTaglineShort: "AI-synthesized intelligence from global sources. In seconds.",
@@ -434,7 +434,7 @@ export const en = {
     sourcesSubtitle: "17+ active sources updated every 6 hours",
     sourcesList:
       "Reuters, BBC, Al Jazeera, Financial Times, Bloomberg, The Guardian, Politico EU, South China Morning Post, and more.",
-    footerCopyright: "Et Primaer",
+    footerCopyright: "Aethon Automation Solutions",
     statSources: "Sources monitored",
     statUpdates: "Update cycle",
     statUpdatesValue: "6 hours",
@@ -494,7 +494,7 @@ export const en = {
     intelligenceReport: "Intelligence Report",
     predictiveIntelligence: "Predictive Intelligence",
     predictiveDesc: "50 AI agents simulate how stories spread — predicting engagement, polarization, and impact before they happen.",
-    poweredBy: "Powered by OASIS social simulation",
+    poweredBy: "Powered by Aether Simulation Engine",
   },
 };
 

@@ -1,4 +1,4 @@
-"""Six agent archetypes for OASIS social simulation.
+"""Six agent archetypes for Aether social simulation.
 
 Each archetype has distinct engagement patterns, biases, and sharing behaviors
 that model how different personas interact with geopolitical intelligence.

@@ -82,9 +82,9 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
         <div className="flex items-start justify-between">
           <Link to="/" className="mb-2 block">
             <ImageWithFallback
-              src="https://images.squarespace-cdn.com/content/v1/6556194e9cc0e30b3030a441/78761e90-5e4a-4a8b-9224-6fdb54cde2c9/Et_Prim%E2%94%9C%C2%AAr_Vertikalt_Logo_Sort_R%E2%94%9C%E2%95%95d_RGB.png?format=1500w"
-              alt="Et Primaer Logo"
-              className="h-14 w-auto object-contain object-left dark:invert"
+              src="/logo.png"
+              alt="Advanced Think Tank Logo"
+              className="h-10 w-auto object-contain object-left dark:invert"
             />
           </Link>
           <button
@@ -96,7 +96,7 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
           </button>
         </div>
         <h1 className="font-bold text-black dark:text-white tracking-tight text-sm">Advanced Think Tank</h1>
-        <p className="text-[10px] text-[#E30613] font-medium mt-0.5">Erhvervslivets Tænketank</p>
+        <p className="text-[10px] text-[#E30613] font-medium mt-0.5">By Aethon</p>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2">

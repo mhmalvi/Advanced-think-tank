@@ -306,7 +306,7 @@ export function LandingPage() {
                 title="Predictive Intelligence"
                 description="50 AI agents simulate how stories spread — predicting engagement, polarization, and impact before they happen."
                 accent
-                subtitle="Powered by OASIS social simulation"
+                subtitle="Powered by Aether Simulation Engine"
               />
             </div>
           </div>

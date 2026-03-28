@@ -1,7 +1,7 @@
 /**
  * ReportViewer — modal overlay displaying a Claude-generated intelligence report.
  *
- * Renders markdown content from the OASIS report generation endpoint.
+ * Renders markdown content from the Aether report generation endpoint.
  * Shown when the user clicks "Generate Report" in MetricStrip.
  */
 
@@ -23,7 +23,7 @@ export function ReportViewer({ content, runId, onClose }: ReportViewerProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `oasis-report-${runId.slice(0, 8)}.md`;
+    a.download = `aether-report-${runId.slice(0, 8)}.md`;
     a.click();
     URL.revokeObjectURL(url);
   };

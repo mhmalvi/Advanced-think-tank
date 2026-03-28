@@ -32,8 +32,8 @@ export const da: Translations = {
     scrollLeft: "Rul kilder til venstre",
     scrollRight: "Rul kilder til hoejre",
     switchLang: "Switch to English",
-    copyright: "Et Primaer",
-    logoAlt: "Et Primaer Logo",
+    copyright: "Aethon Automation Solutions",
+    logoAlt: "Advanced Think Tank Logo",
     openArticle: "Aabn artikel",
     home: "Hjem",
     dismiss: "Afvis",
@@ -401,7 +401,7 @@ export const da: Translations = {
   },
   landing: {
     heroTitle: "Advanced Think Tank",
-    heroSubtitle: "Erhvervslivets Tænketank",
+    heroSubtitle: "By Aethon Automation Solutions",
     heroTagline:
       "Overvaag geopolitiske skift, handelsmonstre og okonomiske politikker - syntetiseret fra 17+ kilder med AI.",
     heroTaglineShort: "AI-syntetiseret efterretning fra globale kilder. Paa sekunder.",
@@ -436,7 +436,7 @@ export const da: Translations = {
     sourcesSubtitle: "17+ aktive kilder opdateret hver 6. time",
     sourcesList:
       "Reuters, BBC, Al Jazeera, Financial Times, Bloomberg, The Guardian, Politico EU, South China Morning Post og flere.",
-    footerCopyright: "Et Primaer",
+    footerCopyright: "Aethon Automation Solutions",
     statSources: "Overvaagede kilder",
     statUpdates: "Opdateringscyklus",
     statUpdatesValue: "6 timer",
@@ -497,6 +497,6 @@ export const da: Translations = {
     intelligenceReport: "Efterretningsrapport",
     predictiveIntelligence: "Forudsigelsesefterretning",
     predictiveDesc: "50 AI-agenter simulerer hvordan historier spredes - forudsiger engagement, polarisering og effekt foer de sker.",
-    poweredBy: "Drevet af OASIS social simulering",
+    poweredBy: "Drevet af Aether Simuleringsmotor",
   },
 };

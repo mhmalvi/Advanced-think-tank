@@ -1,4 +1,4 @@
-"""FastAPI application for the OASIS simulation intelligence service.
+"""FastAPI application for the Aether simulation intelligence service.
 
 Provides endpoints for running social simulations, building knowledge graphs,
 generating predictions, and creating analysis reports.
@@ -14,7 +14,7 @@ from typing import Optional
 
 import httpx
 
-logger = logging.getLogger("oasis")
+logger = logging.getLogger("aether")
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 
 from app.config import settings
@@ -36,7 +36,7 @@ from app.report_agent import generate_report
 import anthropic
 
 app = FastAPI(
-    title="OASIS Simulation Intelligence",
+    title="Aether Simulation Engine",
     description="Social simulation and knowledge graph service for Advanced Think Tank",
     version="1.0.0",
 )
@@ -82,7 +82,7 @@ async def health():
 
 @app.post("/simulate", response_model=SimulateResponse)
 async def simulate(req: SimulateRequest, background_tasks: BackgroundTasks):
-    """Trigger an OASIS simulation (async).
+    """Trigger an Aether simulation (async).
 
     Fetches stories from Supabase, runs simulation in background,
     stores results in Supabase. Poll /results/{run_id} for status.

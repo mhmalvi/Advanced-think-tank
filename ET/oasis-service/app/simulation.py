@@ -1,4 +1,4 @@
-"""OASIS simulation wrapper.
+"""Aether simulation wrapper.
 
 Runs a social media simulation with agent archetypes reacting to stories.
 Uses Claude Haiku to generate agent responses, then extracts engagement metrics.

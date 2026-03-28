@@ -1,9 +1,9 @@
 /**
- * Zustand store for OASIS simulation intelligence data.
+ * Zustand store for Aether simulation intelligence data.
  *
  * Manages simulation runs, per-story metrics, knowledge graph data,
  * and derived health status. Data is fetched from Supabase (runs/metrics)
- * and the OASIS service (graph/predictions).
+ * and the Aether service (graph/predictions).
  */
 
 import { create } from "zustand";
@@ -237,7 +237,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const projectId = storyId || "all";
     try {
       const resp = await fetch(
-        `/api/oasis/graph/${projectId}`,
+        `/api/aether/graph/${projectId}`,
       );
       if (!resp.ok) {
         // Fallback: fetch from Supabase directly
@@ -337,7 +337,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const run = get().latestRun;
     if (!run || run.run_id.startsWith("seed-")) return;
     try {
-      const resp = await fetch(`/api/oasis/results/${run.run_id}/actions`);
+      const resp = await fetch(`/api/aether/results/${run.run_id}/actions`);
       if (!resp.ok) return;
       const data = await resp.json();
       set({ actions: data.actions || [] });
@@ -355,7 +355,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     set({ reportLoading: true, error: null });
     try {
       const resp = await fetch(
-        `/api/oasis/report/generate`,
+        `/api/aether/report/generate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -375,7 +375,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
   predict: async (scenario, storyId, entityIds) => {
     try {
-      const resp = await fetch(`/api/oasis/predict`, {
+      const resp = await fetch(`/api/aether/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
