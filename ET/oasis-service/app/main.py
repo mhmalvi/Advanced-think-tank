@@ -42,6 +42,7 @@ app = FastAPI(
 # In-memory store for simulation runs (ephemeral — results also persist to Supabase)
 _runs: dict[str, dict] = {}
 _reports: dict[str, dict] = {}
+_actions: dict[str, list[dict]] = {}  # run_id -> list of agent actions
 
 
 # ── Health ──────────────────────────────────────────────────
@@ -113,6 +114,32 @@ async def get_results(run_id: str):
         return SimulationResult(**result)
 
     raise HTTPException(status_code=404, detail="Run not found")
+
+
+@app.get("/results/{run_id}/actions")
+async def get_actions(run_id: str, archetype: Optional[str] = None, story_id: Optional[str] = None):
+    """Get individual agent actions for a simulation run.
+
+    Optional filters: archetype (e.g. 'Analyst'), story_id.
+    """
+    actions = _actions.get(run_id, [])
+
+    # Also check by matching run_id in _runs (temp_id -> real run_id mapping)
+    if not actions:
+        for stored_run_id, stored_actions in _actions.items():
+            if stored_run_id in _runs and _runs.get(stored_run_id, {}).get("run_id") == run_id:
+                actions = stored_actions
+                break
+
+    if not actions:
+        raise HTTPException(status_code=404, detail="No actions found for this run. Actions are only available for runs triggered during this session.")
+
+    if archetype:
+        actions = [a for a in actions if a["archetype"].lower() == archetype.lower()]
+    if story_id:
+        actions = [a for a in actions if a["story_id"] == story_id]
+
+    return {"run_id": run_id, "count": len(actions), "actions": actions}
 
 
 # ── Knowledge Graph ─────────────────────────────────────────
@@ -323,13 +350,16 @@ async def _run_and_store(
         logger.info(f"Simulation completed: run_id={result['run_id']}, actions={result['total_actions']}")
         run_id = result["run_id"]
 
+        # Store agent actions in memory (keyed by run_id)
+        _actions[run_id] = result.pop("actions", [])
+
         # Update in-memory cache
-        # Find the temp run_id that maps to this execution
         for temp_id, run_data in list(_runs.items()):
             if run_data["status"] == "pending":
                 _runs[temp_id] = result
-                # Also store under the real run_id
                 _runs[run_id] = result
+                # Also map actions under temp_id
+                _actions[temp_id] = _actions[run_id]
                 break
 
         # Persist to Supabase

@@ -76,6 +76,19 @@ export interface PredictResponse {
   confidence: number;
 }
 
+export interface AgentAction {
+  agent_id: string;
+  archetype: string;
+  story_id: string;
+  step: number;
+  action: "like" | "dislike" | "share" | "comment" | "ignore";
+  sentiment: number;
+  engagement_depth: number;
+  would_share: boolean;
+  comment_text: string | null;
+  reasoning: string | null;
+}
+
 export interface SimulationReport {
   report_id: string;
   run_id: string;

@@ -149,10 +149,15 @@ async def run_simulation(
 
                 all_actions.append({
                     "agent_id": agent["id"],
+                    "archetype": agent["archetype"],
                     "story_id": story_id,
                     "step": step,
                     "action": action,
                     "sentiment": sentiment,
+                    "engagement_depth": depth,
+                    "would_share": would_share,
+                    "comment_text": reaction.get("comment_text"),
+                    "reasoning": reaction.get("reasoning"),
                 })
 
         total_interactions = likes + dislikes + shares + comments
@@ -222,6 +227,7 @@ async def run_simulation(
         "echo_chamber_score": round(echo_chamber_score, 4),
         "duration_seconds": round(duration, 2),
         "metrics": [m.model_dump() for m in story_metrics],
+        "actions": all_actions,
     }
 
 

@@ -14,6 +14,7 @@ import { EntityGraph } from "@/app/components/simulation/EntityGraph";
 import { ContextPanel } from "@/app/components/simulation/ContextPanel";
 import { StoryDotNav } from "@/app/components/simulation/StoryDotNav";
 import { ReportViewer } from "@/app/components/simulation/ReportViewer";
+import { AgentActivityFeed } from "@/app/components/simulation/AgentActivityFeed";
 import type { Entity } from "@/types/simulation";
 
 export function SimulationPage() {
@@ -23,8 +24,10 @@ export function SimulationPage() {
   const healthStatus = useSimulationStore((s) => s.healthStatus);
   const loading = useSimulationStore((s) => s.loading);
   const graph = useSimulationStore((s) => s.graph);
+  const actions = useSimulationStore((s) => s.actions);
   const report = useSimulationStore((s) => s.report);
   const reportLoading = useSimulationStore((s) => s.reportLoading);
+  const fetchActions = useSimulationStore((s) => s.fetchActions);
   const fetchLatest = useSimulationStore((s) => s.fetchLatest);
   const fetchRecentRuns = useSimulationStore((s) => s.fetchRecentRuns);
   const fetchGraph = useSimulationStore((s) => s.fetchGraph);
@@ -37,6 +40,7 @@ export function SimulationPage() {
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
   const [pulsingIds, setPulsingIds] = useState<string[]>([]);
   const [showReport, setShowReport] = useState(false);
+  const [showActions, setShowActions] = useState(false);
   const graphContainerRef = useRef<HTMLDivElement>(null);
   const [graphHeight, setGraphHeight] = useState(400);
 
@@ -45,7 +49,8 @@ export function SimulationPage() {
     fetchLatest();
     fetchRecentRuns();
     fetchGraph();
-  }, [fetchLatest, fetchRecentRuns, fetchGraph]);
+    fetchActions();
+  }, [fetchLatest, fetchRecentRuns, fetchGraph, fetchActions]);
 
   // Compute graph height from container
   useEffect(() => {
@@ -96,34 +101,49 @@ export function SimulationPage() {
         healthStatus={healthStatus}
         loading={loading}
         reportLoading={reportLoading}
+        actionsCount={actions.length}
         onTriggerSimulation={triggerSimulation}
         onGenerateReport={async () => {
           await generateReport();
           setShowReport(true);
         }}
+        onToggleActions={() => setShowActions((v) => !v)}
       />
 
-      {/* Main graph area */}
-      <div ref={graphContainerRef} className="flex-1 relative overflow-hidden bg-white dark:bg-[#0a0a0b]">
-        {hasData ? (
-          <EntityGraph
-            entities={graph.entities}
-            relationships={graph.relationships}
-            selectedEntityId={selectedEntityId}
-            onSelectEntity={handleSelectEntity}
-            pulsingIds={pulsingIds}
-            height={graphHeight}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full">
-            <Activity className="size-10 text-stone-300 dark:text-stone-600 mb-3" />
-            <p className="text-sm text-stone-500 dark:text-stone-400">
-              No simulation or graph data yet
-            </p>
-            <p className="text-xs text-stone-400 mt-1 max-w-sm text-center">
-              Click "Run Simulation" above, or wait for the scheduled 4-hour cycle.
-              The knowledge graph populates as articles are ingested and entities extracted.
-            </p>
+      {/* Main area — graph + optional agent panel */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Graph */}
+        <div ref={graphContainerRef} className="flex-1 relative overflow-hidden bg-white dark:bg-[#0a0a0b]">
+          {hasData ? (
+            <EntityGraph
+              entities={graph.entities}
+              relationships={graph.relationships}
+              selectedEntityId={selectedEntityId}
+              onSelectEntity={handleSelectEntity}
+              pulsingIds={pulsingIds}
+              height={graphHeight}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full">
+              <Activity className="size-10 text-stone-300 dark:text-stone-600 mb-3" />
+              <p className="text-sm text-stone-500 dark:text-stone-400">
+                No simulation or graph data yet
+              </p>
+              <p className="text-xs text-stone-400 mt-1 max-w-sm text-center">
+                Click "Run Simulation" above, or wait for the scheduled 4-hour cycle.
+                The knowledge graph populates as articles are ingested and entities extracted.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Agent activity panel (slide-in) */}
+        {showActions && (
+          <div className="w-80 shrink-0">
+            <AgentActivityFeed
+              actions={actions}
+              onClose={() => setShowActions(false)}
+            />
           </div>
         )}
       </div>

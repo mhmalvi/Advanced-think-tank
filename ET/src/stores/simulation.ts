@@ -15,6 +15,7 @@ import type {
   PredictResponse,
   SimHealthStatus,
   SimulationReport,
+  AgentAction,
 } from "@/types/simulation";
 
 const WEBHOOK_BASE = import.meta.env.VITE_N8N_WEBHOOK_URL || "/webhook";
@@ -60,6 +61,8 @@ interface SimulationState {
   graph: GraphData;
   /** Derived health status for the sim status dot. */
   healthStatus: SimHealthStatus;
+  /** Agent actions from the latest run. */
+  actions: AgentAction[];
   /** Latest generated report. */
   report: SimulationReport | null;
   /** Report generation loading state. */
@@ -79,6 +82,8 @@ interface SimulationState {
   fetchGraph: (storyId?: string) => Promise<void>;
   /** Trigger a new simulation via n8n webhook. */
   triggerSimulation: () => Promise<void>;
+  /** Fetch agent actions for the latest run. */
+  fetchActions: () => Promise<void>;
   /** Generate an intelligence report from the latest simulation run. */
   generateReport: () => Promise<void>;
   /** Run a what-if prediction. */
@@ -114,6 +119,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   metricsByStory: {},
   graph: { entities: [], relationships: [] },
   healthStatus: "unknown",
+  actions: [],
   report: null,
   reportLoading: false,
   loading: false,
@@ -310,8 +316,8 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
           ) {
             clearInterval(poll);
             set({ loading: false });
-            // Also refresh recent runs for sparklines
             await get().fetchRecentRuns();
+            await get().fetchActions();
           }
         } catch {
           // ignore poll errors
@@ -326,6 +332,19 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
         error: e instanceof Error ? e.message : "Failed to trigger simulation",
         loading: false,
       });
+    }
+  },
+
+  fetchActions: async () => {
+    const run = get().latestRun;
+    if (!run || run.run_id.startsWith("seed-")) return;
+    try {
+      const resp = await fetch(`/api/oasis/results/${run.run_id}/actions`);
+      if (!resp.ok) return;
+      const data = await resp.json();
+      set({ actions: data.actions || [] });
+    } catch {
+      // Actions are optional — fail silently
     }
   },
 

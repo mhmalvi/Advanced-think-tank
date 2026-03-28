@@ -2,7 +2,7 @@
  * MetricStrip — top bar on the simulation canvas showing key metrics with sparklines.
  */
 
-import { FlaskConical, FileText } from "lucide-react";
+import { FlaskConical, FileText, Users } from "lucide-react";
 import { Sparkline } from "./Sparkline";
 import type { SimulationRun } from "@/types/simulation";
 import type { SimHealthStatus } from "@/types/simulation";
@@ -13,8 +13,10 @@ interface MetricStripProps {
   healthStatus: SimHealthStatus;
   loading: boolean;
   reportLoading: boolean;
+  actionsCount: number;
   onTriggerSimulation: () => void;
   onGenerateReport: () => void;
+  onToggleActions: () => void;
 }
 
 const STATUS_COLORS = {
@@ -30,8 +32,10 @@ export function MetricStrip({
   healthStatus,
   loading,
   reportLoading,
+  actionsCount,
   onTriggerSimulation,
   onGenerateReport,
+  onToggleActions,
 }: MetricStripProps) {
   const engagementTrend = recentRuns
     .slice()
@@ -111,6 +115,15 @@ export function MetricStrip({
         </div>
 
         <div className="flex items-center gap-2">
+          {actionsCount > 0 && (
+            <button
+              onClick={onToggleActions}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-stone-300 dark:border-stone-600 text-stone-700 dark:text-stone-300 rounded hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+            >
+              <Users className="size-3.5" />
+              Agents ({actionsCount})
+            </button>
+          )}
           {latestRun && (
             <button
               onClick={onGenerateReport}
