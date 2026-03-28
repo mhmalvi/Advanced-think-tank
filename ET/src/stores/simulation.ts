@@ -237,7 +237,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     const projectId = storyId || "all";
     try {
       const resp = await fetch(
-        `${WEBHOOK_BASE}/../oasis:8100/graph/${projectId}`,
+        `/api/oasis/graph/${projectId}`,
       );
       if (!resp.ok) {
         // Fallback: fetch from Supabase directly
@@ -311,7 +311,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
     set({ reportLoading: true, error: null });
     try {
       const resp = await fetch(
-        `${WEBHOOK_BASE}/../oasis:8100/report/generate`,
+        `/api/oasis/report/generate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -331,7 +331,7 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
 
   predict: async (scenario, storyId, entityIds) => {
     try {
-      const resp = await fetch(`${WEBHOOK_BASE}/../oasis:8100/predict`, {
+      const resp = await fetch(`/api/oasis/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
