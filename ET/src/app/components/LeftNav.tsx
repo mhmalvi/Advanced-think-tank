@@ -80,11 +80,11 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
       {/* Header */}
       <div className="p-3 border-b border-stone-200 dark:border-stone-800">
         <div className="flex items-start justify-between">
-          <Link to="/" className="mb-2 block">
-            <ImageWithFallback
-              src="/logo.png"
-              alt="Advanced Think Tank Logo"
-              className="h-10 w-auto object-contain object-left dark:invert"
+          <Link to="/" className="block">
+            <img
+              src="/logo.svg"
+              alt="Advanced Think Tank by Aethon"
+              className="h-12 w-auto object-contain object-left dark:invert"
             />
           </Link>
           <button
@@ -95,8 +95,6 @@ export function LeftNav({ collapsed = false }: LeftNavProps) {
             <PanelLeftClose className="size-4" />
           </button>
         </div>
-        <h1 className="font-bold text-black dark:text-white tracking-tight text-sm">Advanced Think Tank</h1>
-        <p className="text-[10px] text-[#E30613] font-medium mt-0.5">By Aethon</p>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-2">

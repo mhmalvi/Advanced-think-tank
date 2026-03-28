@@ -31,7 +31,7 @@ export function LandingPage() {
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 h-14">
           <Link to="/" className="flex items-center gap-3">
             <ImageWithFallback
-              src="/logo.png"
+              src="/logo.svg"
               alt={t.common.logoAlt}
               className="h-8 w-auto object-contain dark:invert"
             />
@@ -418,7 +418,7 @@ export function LandingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <ImageWithFallback
-                src="/logo.png"
+                src="/logo.svg"
                 alt={t.common.logoAlt}
                 className="h-6 w-auto object-contain dark:invert"
               />
