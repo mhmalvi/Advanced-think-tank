@@ -8,7 +8,7 @@
 
 import { useState, useEffect } from "react";
 import { X, ArrowRight, Zap, Loader2 } from "lucide-react";
-import { StoryLabel } from "./StoryLabel";
+import { LabelPill } from "./StoryLabel";
 
 interface RippleConnection {
   title: string;
@@ -121,7 +121,7 @@ export function RippleEffectCard({
             {conn.labels && conn.labels.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-2">
                 {conn.labels.slice(0, 3).map((label, li) => (
-                  <StoryLabel key={li} type={label.type as any} text={label.text} reason={label.reason} />
+                  <LabelPill key={li} label={label as any} />
                 ))}
               </div>
             )}

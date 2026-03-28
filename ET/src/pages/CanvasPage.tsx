@@ -21,6 +21,7 @@ import { StoryLabels } from "@/app/components/StoryLabel";
 import { DanishImpactCallout } from "@/app/components/DanishImpactCallout";
 import { StoryRenderer } from "@/app/components/StoryRenderer";
 import { StoryTimeline } from "@/app/components/StoryTimeline";
+import { RippleEffectCard } from "@/app/components/RippleEffectCard";
 import { SourceCarousel } from "@/app/components/SourceCarousel";
 import { canvasChatMessage } from "@/lib/api";
 import { formatPublicationDate } from "@/lib/utils";
@@ -684,6 +685,18 @@ function StoryPanel() {
 
           {/* Rich story content with citations */}
           <StoryRenderer content={currentContent ?? ""} sourceArticleIds={currentStory.source_article_ids ?? []} />
+
+          {/* Cross-domain ripple effects */}
+          <div className="mt-6">
+            <RippleEffectCard
+              storyId={currentStory.id}
+              storyContent={currentStory.synthetic_content || ""}
+              storyLabels={currentStory.labels || []}
+              onExplore={(topic) => {
+                setInput(`Tell me more about: ${topic}`);
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
