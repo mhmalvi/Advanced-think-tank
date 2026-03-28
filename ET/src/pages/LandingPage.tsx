@@ -306,6 +306,7 @@ export function LandingPage() {
                 title="Predictive Intelligence"
                 description="50 AI agents simulate how stories spread — predicting engagement, polarization, and impact before they happen."
                 accent
+                subtitle="Powered by OASIS social simulation"
               />
             </div>
           </div>
@@ -482,11 +483,13 @@ function FeatureCard({
   title,
   description,
   accent,
+  subtitle,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   accent: boolean;
+  subtitle?: string;
 }) {
   return (
     <div
@@ -501,6 +504,9 @@ function FeatureCard({
       </div>
       <h3 className="text-sm font-bold tracking-tight">{title}</h3>
       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{description}</p>
+      {subtitle && (
+        <p className="mt-2 text-[10px] font-medium text-[var(--brand)] opacity-70">{subtitle}</p>
+      )}
     </div>
   );
 }
