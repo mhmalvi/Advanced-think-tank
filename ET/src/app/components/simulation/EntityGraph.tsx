@@ -111,6 +111,7 @@ export function EntityGraph({
   const nodeCanvasObject = useCallback(
     (node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
       const { x, y, name, entityType, mentionCount, id } = node;
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
       const baseRadius = Math.max(5, Math.sqrt(mentionCount) * 3);
       const isSelected = id === selectedEntityId;
       const isPulsing = pulsingIds.includes(id);
@@ -236,6 +237,7 @@ export function EntityGraph({
       const sy = source.y;
       const tx = target.x;
       const ty = target.y;
+      if (!Number.isFinite(sx) || !Number.isFinite(sy) || !Number.isFinite(tx) || !Number.isFinite(ty)) return;
 
       const sourceColor = TYPE_COLORS[source.entityType] || "#a8a29e";
       const targetColor = TYPE_COLORS[target.entityType] || "#a8a29e";
