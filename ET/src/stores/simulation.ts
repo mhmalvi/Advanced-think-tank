@@ -287,13 +287,40 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   triggerSimulation: async () => {
     set({ loading: true, error: null });
     try {
-      await fetch(`${WEBHOOK_BASE}/att-simulate`, {
+      const resp = await fetch(`${WEBHOOK_BASE}/att-simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
       });
-      // Don't wait for result — it runs async, UI will poll
-      set({ loading: false });
+      if (!resp.ok) {
+        throw new Error(`Simulation trigger failed (${resp.status})`);
+      }
+      // Simulation runs async in the background (~30-60s).
+      // Poll for results every 10s for up to 2 minutes.
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          await get().fetchLatest();
+          const run = get().latestRun;
+          if (
+            run &&
+            !run.run_id.startsWith("seed-") &&
+            run.status === "completed"
+          ) {
+            clearInterval(poll);
+            set({ loading: false });
+            // Also refresh recent runs for sparklines
+            await get().fetchRecentRuns();
+          }
+        } catch {
+          // ignore poll errors
+        }
+        if (attempts >= 12) {
+          clearInterval(poll);
+          set({ loading: false });
+        }
+      }, 10000);
     } catch (e) {
       set({
         error: e instanceof Error ? e.message : "Failed to trigger simulation",
